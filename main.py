@@ -65,7 +65,7 @@ def send_email(data: EmailData = Body(...)):
         )
         print('sent mail')
         connection.close()
-        send_sms(new_msg)
+        # send_sms(new_msg)
         print('sent sms')
         return {"success": True}
     except Exception as e:
