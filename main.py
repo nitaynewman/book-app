@@ -54,27 +54,34 @@ def send_email(data: EmailData = Body(...)):
         '''
 
         connection = smtplib.SMTP("smtp.gmail.com", 587)
+        print('first connection')
         connection.starttls()
         connection.login(user=MY_EMAIL, password=PASSWORD)
+        print('loged in ')
         connection.sendmail(
             from_addr=MY_EMAIL,
             to_addrs=[MY_EMAIL, email], 
             msg=f"Subject: {subject} to Nitay Newman\n\n{new_msg}"
         )
+        print('sent mail')
         connection.close()
         send_sms(new_msg)
+        print('sent sms')
         return {"success": True}
     except Exception as e:
         print(f"Error: {e}")
         return {"success": False}
     
 def send_sms(msg):
+    print('starting to send sms')
     client = Client(TWILIO_SID, TWILIO_AUTH)
+    print('connected to client')
     message = client.messages.create(
         from_=TWILIO_PHONE,
         body=msg,
         to='+972584680232'
     )
+    print('sent sms')
     print(f"send sms {message.sid}")
 
 if __name__ == "__main__":
