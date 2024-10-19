@@ -4,15 +4,21 @@ import smtplib
 import uvicorn
 from pydantic import BaseModel
 from twilio.rest import Client
+from dotenv import load_dotenv
+import os
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Access the environment variables
+TWILIO_PHONE = os.getenv('TWILIO_PHONE')
+TWILIO_SID = os.getenv('TWILIO_SID')
+TWILIO_AUTH = os.getenv('TWILIO_AUTH')
+
+MY_EMAIL = os.getenv('MY_EMAIL')
+PASSWORD = os.getenv('PASSWORD')
 
 app = FastAPI()
-
-TWILIO_PHONE = '+18584017119'
-TWILIO_SID = 'AC59c49140f9d0e47bae9b21ce247753be'
-TWILIO_AUTH = '80fed87f70a093fd8ba7fc9dafbb9f84'
-
-MY_EMAIL = "nitaybusines@gmail.com"
-PASSWORD = 'ghlx gdms ridi qbdz'
 
 # CORS policy
 app.add_middleware(
@@ -65,12 +71,11 @@ def send_email(data: EmailData = Body(...)):
 def send_sms(msg):
     client = Client(TWILIO_SID, TWILIO_AUTH)
     message = client.messages.create(
-        from_='+18584017119',
+        from_=TWILIO_PHONE,
         body=msg,
         to='+972584680232'
     )
     print(f"send sms {message.sid}")
-
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8080)
