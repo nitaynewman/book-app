@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+AUDIO_WEB = os.getenv("AUDIO_WEB")
+BACKEND_URL = os.getenv("BACKEND_URL")
 MY_EMAIL = os.getenv("MY_EMAIL")
 PASSWORD = os.getenv("PASSWORD")
 router = APIRouter(
@@ -17,7 +19,7 @@ router = APIRouter(
 @router.post("/signin/")
 async def signin(username, email):
     title = "AudioBook user request"
-    msg = f"{username} wants permission\n{email}\nurl: http://localhost:8080/auth/add_user?username={username}&email={email}"
+    msg = f"{username} wants permission\n{email}\nurl: {BACKEND_URL}/auth/add_user?username={username}&email={email}"
     await send_email(msg=msg, title=title, src_email=MY_EMAIL, src_password=PASSWORD, dest_email=MY_EMAIL)
     return 'success'
 
@@ -27,7 +29,7 @@ async def add_user(username, email):
         f.write(f'\n{username}')
 
     title = "AudioBook"
-    msg = f"Hello {username}. \nWe added your user {username} \nyou now can enter the website at: http://localhost:3001/"
+    msg = f"Hello {username}. \nWe added your user {username} \nyou now can enter the website at: {AUDIO_WEB}"
     await send_email(msg=msg, title=title, src_email=MY_EMAIL, src_password=PASSWORD, dest_email=email)
     return 'success'
 
