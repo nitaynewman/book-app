@@ -1,5 +1,7 @@
 # Ignore .env file
 .env
+<<<<<<< HEAD
+test.py
 
 # Byte-compiled Python files
 __pycache__/
