@@ -1,6 +1,7 @@
 import os
 import requests
 import re
+import chromedriver_autoinstaller
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
@@ -12,18 +13,14 @@ BASE_URL = "https://www.pdfdrive.com"
 
 def get_driver():
     """ Configures and returns a Selenium WebDriver instance """
+    chromedriver_autoinstaller.install()
     options = webdriver.ChromeOptions()
     options.add_argument("--headless")  # Run in headless mode
     options.add_argument("--no-sandbox")  # Necessary for Render.com
     options.add_argument("--disable-dev-shm-usage")  # Prevent resource issues
     options.add_argument("--disable-gpu")
 
-    # Use Chromium, which is already installed in Render's environment
-    options.binary_location = "/usr/bin/chromium-browser"
-
-    # Use webdriver-manager to install a compatible Chromedriver version
-    service = Service(ChromeDriverManager().install())
-    return webdriver.Chrome(service=service, options=options)
+    return webdriver.Chrome(service=Service(), options=options)
 
 def download_book(book_name: str):
     """ Searches for a book and downloads it if available """
