@@ -1,14 +1,28 @@
 import os
 import requests
 import re
+import chromedriver_autoinstaller  # Automatically installs the correct chromedriver version
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
 
 BASE_URL = "https://www.pdfdrive.com"
+
+# Install and configure Chromedriver
+chromedriver_autoinstaller.install()  # Ensures the correct Chromedriver version is installed
+
+def get_driver():
+    """ Configures and returns a Selenium WebDriver instance """
+    options = webdriver.ChromeOptions()
+    options.add_argument("--headless")  # Run in headless mode (no GUI)
+    options.add_argument("--no-sandbox")  # Bypass OS security restrictions (necessary for cloud)
+    options.add_argument("--disable-dev-shm-usage")  # Prevents resource issues
+    options.add_argument("--disable-gpu")  # Fixes certain headless issues
+    options.binary_location = "/usr/bin/google-chrome"  # Explicitly set Chrome binary path
+    
+    return webdriver.Chrome(service=Service(), options=options)
 
 def download_book(book_name: str):
     """ Searches for a book and downloads it if available """
@@ -18,13 +32,8 @@ def download_book(book_name: str):
         return None
 
     print("Looking for download button...")
+    driver = get_driver()
 
-    # Open the book page in Selenium to locate the download link
-    service = Service(ChromeDriverManager().install())
-    options = webdriver.ChromeOptions()
-    options.add_argument("--headless")
-    driver = webdriver.Chrome(service=service, options=options)
-    
     try:
         driver.get(url)
 
@@ -33,7 +42,6 @@ def download_book(book_name: str):
             download_button = WebDriverWait(driver, 30).until(
                 EC.presence_of_element_located((By.XPATH, '//*[@id="alternatives"]/div[1]/div/a'))
             )
-            
             download_url = download_button.get_attribute("href")
 
         except:
@@ -45,9 +53,8 @@ def download_book(book_name: str):
             )
             download_url = alternative_link.get_attribute("href")
 
-            # If the URL does not directly end in `.pdf`, attempt extraction
+            # Extract actual PDF URL if necessary
             if not download_url.endswith(".pdf"):
-                print(f"Extracting real PDF URL from: {download_url}")
                 extracted_url = extract_pdf_from_viewer(download_url)
                 if extracted_url:
                     download_url = extracted_url
@@ -68,7 +75,6 @@ def download_book(book_name: str):
     finally:
         driver.quit()
 
-
 def extract_pdf_from_viewer(viewer_url):
     """ Extracts the actual PDF download link from a web-based PDF viewer """
     try:
@@ -87,16 +93,12 @@ def extract_pdf_from_viewer(viewer_url):
     
     return None
 
-
 def get_book_url_page(book_name):
     """ Searches for a book and returns the book page URL """
     url = f"{BASE_URL}/search?q={book_name}"
     print("Searching URL:", url)
-
-    service = Service(ChromeDriverManager().install())
-    options = webdriver.ChromeOptions()
-    options.add_argument("--headless")
-    driver = webdriver.Chrome(service=service, options=options)
+    
+    driver = get_driver()
 
     try:
         driver.get(url)
@@ -121,7 +123,7 @@ def get_book_url_page(book_name):
                         new_url = re.sub(r'-e(\d+\.html)$', r'-d\1', book_url)
                         print("Book URL page found:", new_url)
                         return new_url
-            except Exception as e:
+            except Exception:
                 continue  # Skip elements that don't match the pattern
 
     except Exception as e:
@@ -132,16 +134,12 @@ def get_book_url_page(book_name):
     
     return None
 
-
 def download_request(url, book_name="book"):
     """ Downloads a book and saves it to the 'pdf' folder. """
-
     print("Downloading from:", url)
 
-    # Ensure 'pdf' folder exists
     os.makedirs("pdf", exist_ok=True)
 
-    # Remove spaces and special characters from file name
     safe_name = re.sub(r'\W+', '_', book_name)  # Replace non-word characters with "_"
     file_path = os.path.join("pdf", f"{safe_name}.pdf")
 
