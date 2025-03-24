@@ -11,30 +11,21 @@ from selenium.webdriver.support import expected_conditions as EC
 BASE_URL = "https://www.pdfdrive.com"
 
 def get_driver():
-    """ Configures and returns a Selenium WebDriver instance with a prebuilt Chrome binary """
-    
-    # Automatically installs compatible Chromedriver
-    chromedriver_autoinstaller.install()
+    """ Configures and returns a Selenium WebDriver instance """
 
-    # Ensure the Chrome binary exists in the correct location (no need for sudo, installing Chrome directly)
-    chrome_path = "/usr/bin/google-chrome-stable"
-    if not os.path.exists(chrome_path):
-        print("Chrome binary not found, trying to install...")
+    # Set Chrome & Chromedriver paths
+    chrome_path = f"{os.environ['HOME']}/chrome-linux64/chrome"
+    chromedriver_path = f"{os.environ['HOME']}/chromedriver-linux64/chromedriver"
 
-        # Install Chrome (if not found)
-        os.system("wget -q -O google-chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb")
-        os.system("dpkg-deb -x google-chrome.deb $HOME/chrome")
-        os.system("chmod +x $HOME/chrome/opt/google/chrome/google-chrome-stable")
-
-    # Set Chrome options
+    # Configure Chrome options
     options = webdriver.ChromeOptions()
-    options.add_argument("--headless")  # Run without GUI
-    options.add_argument("--no-sandbox")  # Required for non-root execution
-    options.add_argument("--disable-dev-shm-usage")  # Prevents memory issues
-    options.add_argument("--disable-gpu")  # Avoids GPU-related crashes
-    options.binary_location = f"{os.environ['HOME']}/chrome/opt/google/chrome/google-chrome-stable"  # Use the downloaded Chrome binary
+    options.binary_location = chrome_path
+    options.add_argument("--headless")  # Run in headless mode
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")
 
-    return webdriver.Chrome(service=Service(), options=options)
+    return webdriver.Chrome(service=Service(chromedriver_path), options=options)
 
 def download_book(book_name: str):
     """ Searches for a book and downloads it if available """
