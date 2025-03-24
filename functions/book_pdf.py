@@ -7,7 +7,6 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.service import Service
 
 BASE_URL = "https://www.pdfdrive.com"
 
@@ -17,14 +16,15 @@ def get_driver():
     # Automatically installs compatible Chromedriver
     chromedriver_autoinstaller.install()
 
-    # Ensure the Chrome binary exists in the correct location
+    # Ensure the Chrome binary exists in the correct location (no need for sudo, installing Chrome directly)
     chrome_path = "/usr/bin/google-chrome-stable"
     if not os.path.exists(chrome_path):
-        print("Downloading Chrome binary...")
-        os.system("wget https://github.com/ZenRows/chrome-headless-shell/releases/download/latest/chrome-headless-shell-linux64.zip")
-        os.system("unzip chrome-headless-shell-linux64.zip -d /usr/bin/")
-        os.system("mv /usr/bin/chrome-headless-shell /usr/bin/google-chrome-stable")
-        os.system("chmod +x /usr/bin/google-chrome-stable")
+        print("Chrome binary not found, trying to install...")
+
+        # Install Chrome (if not found)
+        os.system("wget -q -O google-chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb")
+        os.system("dpkg-deb -x google-chrome.deb $HOME/chrome")
+        os.system("chmod +x $HOME/chrome/opt/google/chrome/google-chrome-stable")
 
     # Set Chrome options
     options = webdriver.ChromeOptions()
@@ -32,7 +32,7 @@ def get_driver():
     options.add_argument("--no-sandbox")  # Required for non-root execution
     options.add_argument("--disable-dev-shm-usage")  # Prevents memory issues
     options.add_argument("--disable-gpu")  # Avoids GPU-related crashes
-    options.binary_location = chrome_path  # Use the downloaded Chrome binary
+    options.binary_location = f"{os.environ['HOME']}/chrome/opt/google/chrome/google-chrome-stable"  # Use the downloaded Chrome binary
 
     return webdriver.Chrome(service=Service(), options=options)
 
