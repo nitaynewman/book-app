@@ -3,28 +3,12 @@ import requests
 import re
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from webdriver_manager.chrome import ChromeDriverManager
 
 BASE_URL = "https://www.pdfdrive.com"
-
-# Function to get Chromium binary path
-def get_chromium_path():
-    return "/usr/bin/chromium-browser"  # Default Chromium path on Render
-
-# Function to initialize WebDriver
-def get_driver():
-    options = Options()
-    options.binary_location = get_chromium_path()  # Set Chromium path
-    options.add_argument("--headless")  # Run without UI
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-
-    service = Service("/usr/bin/chromedriver")  # Set Chromedriver path
-    driver = webdriver.Chrome(service=service, options=options)
-    return driver
 
 def download_book(book_name: str):
     """ Searches for a book and downloads it if available """
@@ -34,8 +18,13 @@ def download_book(book_name: str):
         return None
 
     print("Looking for download button...")
-    driver = get_driver()
 
+    # Open the book page in Selenium to locate the download link
+    service = Service(ChromeDriverManager().install())
+    options = webdriver.ChromeOptions()
+    options.add_argument("--headless")
+    driver = webdriver.Chrome(service=service, options=options)
+    
     try:
         driver.get(url)
 
@@ -44,6 +33,7 @@ def download_book(book_name: str):
             download_button = WebDriverWait(driver, 30).until(
                 EC.presence_of_element_located((By.XPATH, '//*[@id="alternatives"]/div[1]/div/a'))
             )
+            
             download_url = download_button.get_attribute("href")
 
         except:
@@ -55,8 +45,9 @@ def download_book(book_name: str):
             )
             download_url = alternative_link.get_attribute("href")
 
-            # Extract actual PDF URL if necessary
+            # If the URL does not directly end in `.pdf`, attempt extraction
             if not download_url.endswith(".pdf"):
+                print(f"Extracting real PDF URL from: {download_url}")
                 extracted_url = extract_pdf_from_viewer(download_url)
                 if extracted_url:
                     download_url = extracted_url
@@ -77,6 +68,7 @@ def download_book(book_name: str):
     finally:
         driver.quit()
 
+
 def extract_pdf_from_viewer(viewer_url):
     """ Extracts the actual PDF download link from a web-based PDF viewer """
     try:
@@ -95,12 +87,16 @@ def extract_pdf_from_viewer(viewer_url):
     
     return None
 
+
 def get_book_url_page(book_name):
     """ Searches for a book and returns the book page URL """
     url = f"{BASE_URL}/search?q={book_name}"
     print("Searching URL:", url)
-    
-    driver = get_driver()
+
+    service = Service(ChromeDriverManager().install())
+    options = webdriver.ChromeOptions()
+    options.add_argument("--headless")
+    driver = webdriver.Chrome(service=service, options=options)
 
     try:
         driver.get(url)
@@ -125,7 +121,7 @@ def get_book_url_page(book_name):
                         new_url = re.sub(r'-e(\d+\.html)$', r'-d\1', book_url)
                         print("Book URL page found:", new_url)
                         return new_url
-            except Exception:
+            except Exception as e:
                 continue  # Skip elements that don't match the pattern
 
     except Exception as e:
@@ -136,12 +132,16 @@ def get_book_url_page(book_name):
     
     return None
 
+
 def download_request(url, book_name="book"):
     """ Downloads a book and saves it to the 'pdf' folder. """
+
     print("Downloading from:", url)
 
+    # Ensure 'pdf' folder exists
     os.makedirs("pdf", exist_ok=True)
 
+    # Remove spaces and special characters from file name
     safe_name = re.sub(r'\W+', '_', book_name)  # Replace non-word characters with "_"
     file_path = os.path.join("pdf", f"{safe_name}.pdf")
 
