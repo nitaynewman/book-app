@@ -1,28 +1,30 @@
 import os
 import requests
 import re
-import chromedriver_autoinstaller
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options  # Fixed import
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 BASE_URL = "https://www.pdfdrive.com"
 
-def get_driver():
-    """ Initializes and returns a headless Chrome WebDriver instance """
-    # Ensure ChromeDriver is installed
-    chromedriver_autoinstaller.install()
+# Function to get Chromium binary path
+def get_chromium_path():
+    return "/usr/bin/chromium-browser"  # Default Chromium path on Render
 
+# Function to initialize WebDriver
+def get_driver():
     options = Options()
-    options.add_argument("--headless=new")  # Latest headless mode
+    options.binary_location = get_chromium_path()  # Set Chromium path
+    options.add_argument("--headless")  # Run without UI
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-gpu")
 
-    return webdriver.Chrome(options=options)
+    service = Service("/usr/bin/chromedriver")  # Set Chromedriver path
+    driver = webdriver.Chrome(service=service, options=options)
+    return driver
 
 def download_book(book_name: str):
     """ Searches for a book and downloads it if available """
