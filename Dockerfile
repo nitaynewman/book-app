@@ -1,15 +1,18 @@
 # Set default port
 ARG PORT=8080
 
-# Use a valid Cypress image
-FROM cypress/included:12.17.1
+# Start with a Python image (which has apt-get)
+FROM python:3.9
 
-# Install required dependencies
-RUN apt-get update && apt-get install -y python3-pip
+# Install Cypress manually (since it's not a default Python package)
+RUN apt-get update && apt-get install -y wget curl \
+    && curl -o /tmp/cypress.zip -L https://download.cypress.io/desktop/12.17.1 \
+    && apt-get install -y unzip \
+    && unzip /tmp/cypress.zip -d /usr/local/lib \
+    && rm -rf /tmp/cypress.zip
 
-# Set up Python environment
+# Install required Python dependencies
 COPY requirements.txt .
-ENV PATH /home/root/.local/bin:${PATH}
 RUN pip install -r requirements.txt
 
 # Copy the project files
