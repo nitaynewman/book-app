@@ -1,4 +1,4 @@
-ARG PORT=443
+ARG PORT=8080
 FROM cypress/browser:latest
 RUN apt-get
 RUN echo $(python3 -m site --user-base)
