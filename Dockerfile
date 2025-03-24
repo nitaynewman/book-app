@@ -4,11 +4,6 @@ ARG PORT=8080
 # Use a valid Cypress image
 FROM cypress/included:12.17.1
 
-# Set up Docker authentication
-ARG DOCKER_USERNAME
-ARG DOCKER_PASSWORD
-RUN echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-
 # Install required dependencies
 RUN apt-get update && apt-get install -y python3-pip
 
@@ -24,4 +19,4 @@ COPY . .
 EXPOSE $PORT
 
 # Start the FastAPI application
-CMD uvicorn main:app --host 0.0.0.0 --port $PORT
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
