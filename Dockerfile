@@ -1,16 +1,18 @@
 ARG PORT=8080
-FROM cypress/browsers:latest
+FROM python:3.9-slim
 
-RUN apt-get install python3 -y
+# Install Chromium dependencies (needed for Selenium headless mode)
+RUN apt-get update && apt-get install -y \
+    chromium \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN echo $(python3 -m site --user-base)
-
+# Copy requirements file
 COPY requirements.txt .
 
-ENV PATH /home/root/.local/bin:${PATH}
+# Install pip dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-RUN apt-get update && apt-get install -y python3-pip && pip install -r requirements.txt
-
+# Copy the application code
 COPY . .
 
 # Expose the port
