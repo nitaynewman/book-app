@@ -1,10 +1,10 @@
-# Use a lightweight Python image
+# Use Python slim base image
 FROM python:3.10-slim
 
-# Set environment variables to avoid interactive prompts
+# Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install system dependencies required for Chrome & Chromedriver
+# Install dependencies
 RUN apt-get update && apt-get install -y \
     wget \
     curl \
@@ -43,8 +43,8 @@ RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add
 # Verify Chrome installation
 RUN google-chrome --version
 
-# Install Chromedriver (matching Chrome version)
-RUN CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d '.' -f 1) \
+# Fetch full Chrome version and use it to get the matching Chromedriver
+RUN CHROME_VERSION=$(google-chrome --version | awk '{print $3}') \
     && echo "Detected Chrome version: $CHROME_VERSION" \
     && CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION") \
     && echo "Downloading ChromeDriver version: $CHROMEDRIVER_VERSION" \
