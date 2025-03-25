@@ -1,9 +1,13 @@
 ARG PORT=8080
 FROM cypress/base:latest
-RUN apt-get install python 3 -y
-RUN echo $(python3 -m site --user-base)
+
+RUN apt-get update && apt-get install -y python3 python3-pip
+
 COPY requirements.txt .
-ENV PATH /home/root/.local/bin:${PATH}
-RUN apt-get update && apt-get install -y Python3-pip && pip install -r requirements.txt
+RUN pip3 install -r requirements.txt
+
 COPY . .
+
+EXPOSE $PORT
+
 CMD uvicorn main:app --host 0.0.0.0 --port $PORT
