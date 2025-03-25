@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 import requests
 import re
 from selenium import webdriver
@@ -11,32 +11,30 @@ from webdriver_manager.chrome import ChromeDriverManager
 import uvicorn
 import os
 
-
 app = FastAPI()
 
-@app.get('/')
+@app.get("/")
 def hello():
-    return {'hello': True}
+    return {"hello": True}
 
-@app.get('/download_book')
-def download_book_by_name(book_name):
-    download_book(book_name)
-    file_path = book_title_pdf(book_name)
-    print(file_path)
-
-    if os.path.exists(file_path):
+@app.get("/download_book/{book_name}")
+def download_book_by_name(book_name: str):
+    file_path = download_book(book_name)
+    
+    if file_path and os.path.exists(file_path):
         return FileResponse(file_path, media_type="application/pdf", filename=f"{book_name}.pdf")
 
-    return {"error": "File not found"}
+    return JSONResponse(content={"error": "File not found"}, status_code=404)
 
-@app.get('/book_title_pdf')
-def book_title_pdf(book_name):
-    safe_name = re.sub(r'\W+', '_', book_name) 
-    file_path = os.path.join(f"{safe_name}.pdf")
-    if os.path.exists(f'pdf/{file_path}'):
-        return f'pdf/{file_path}'
+@app.get("/book_title_pdf/{book_name}")
+def book_title_pdf(book_name: str):
+    safe_name = re.sub(r"\W+", "_", book_name)
+    file_path = f"pdf/{safe_name}.pdf"
+
+    if os.path.exists(file_path):
+        return {"file_path": file_path}
     else:
-        return None
+        return JSONResponse(content={"error": "File not found"}, status_code=404)
 
 
 BASE_URL = "https://www.pdfdrive.com"
@@ -50,33 +48,29 @@ def download_book(book_name: str):
 
     print("Looking for download button...")
 
-    # Open the book page in Selenium to locate the download link
     service = Service(ChromeDriverManager().install())
     options = webdriver.ChromeOptions()
     options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
     driver = webdriver.Chrome(service=service, options=options)
-    
+
     try:
         driver.get(url)
 
-        # First attempt: Find the usual download button
         try:
             download_button = WebDriverWait(driver, 30).until(
                 EC.presence_of_element_located((By.XPATH, '//*[@id="alternatives"]/div[1]/div/a'))
             )
-            
             download_url = download_button.get_attribute("href")
-
         except:
             print("Download button not found, checking for alternative PDF link...")
 
-            # Second attempt: Find a direct web-viewer PDF link
             alternative_link = WebDriverWait(driver, 30).until(
                 EC.presence_of_element_located((By.XPATH, '//*[@id="alternatives"]/div[1]/a'))
             )
             download_url = alternative_link.get_attribute("href")
 
-            # If the URL does not directly end in `.pdf`, attempt extraction
             if not download_url.endswith(".pdf"):
                 print(f"Extracting real PDF URL from: {download_url}")
                 extracted_url = extract_pdf_from_viewer(download_url)
@@ -108,7 +102,6 @@ def extract_pdf_from_viewer(viewer_url):
             print("Failed to access the PDF viewer page.")
             return None
 
-        # Try to find a direct PDF link in the HTML response
         match = re.search(r'href="(https?://[^"]+\.pdf)"', response.text)
         if match:
             return match.group(1)
@@ -127,33 +120,33 @@ def get_book_url_page(book_name):
     service = Service(ChromeDriverManager().install())
     options = webdriver.ChromeOptions()
     options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
     driver = webdriver.Chrome(service=service, options=options)
 
     try:
         driver.get(url)
 
-        # Wait for the list to be available
         WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.TAG_NAME, "ul"))
         )
 
-        # Get all <li> elements inside <ul>
         book_items = driver.find_elements(By.CSS_SELECTOR, "ul li")
-        
+
         for book in book_items:
             try:
                 title_element = book.find_element(By.CSS_SELECTOR, "h2")
                 book_title = title_element.text.strip()
-                
+
                 if book_name.lower() in book_title.lower():
                     link_element = book.find_element(By.CSS_SELECTOR, "a")
                     book_url = link_element.get_attribute("href")
                     if book_url:
-                        new_url = re.sub(r'-e(\d+\.html)$', r'-d\1', book_url)
+                        new_url = re.sub(r"-e(\d+\.html)$", r"-d\1", book_url)
                         print("Book URL page found:", new_url)
                         return new_url
-            except Exception as e:
-                continue  # Skip elements that don't match the pattern
+            except:
+                continue  
 
     except Exception as e:
         print(f"Error fetching book URL: {e}")
@@ -169,21 +162,18 @@ def download_request(url, book_name="book"):
 
     print("Downloading from:", url)
 
-    # Ensure 'pdf' folder exists
     os.makedirs("pdf", exist_ok=True)
 
-    # Remove spaces and special characters from file name
-    safe_name = re.sub(r'\W+', '_', book_name)  # Replace non-word characters with "_"
+    safe_name = re.sub(r"\W+", "_", book_name)
     file_path = os.path.join("pdf", f"{safe_name}.pdf")
 
     try:
         response = requests.get(url, stream=True)
         if response.status_code != 200:
-            error_message = f'Failed to download book. Please check this URL: {url}'
+            error_message = f"Failed to download book. Please check this URL: {url}"
             print(error_message)
             return error_message
 
-        # Save the file
         with open(file_path, "wb") as file:
             for chunk in response.iter_content(chunk_size=8192):
                 file.write(chunk)
@@ -196,4 +186,4 @@ def download_request(url, book_name="book"):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=6000)
+    uvicorn.run(app, host="0.0.0.0", port=8080)
