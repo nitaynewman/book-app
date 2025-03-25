@@ -13,6 +13,8 @@ import os
 
 app = FastAPI()
 
+BASE_URL = "https://www.pdfdrive.com"
+
 @app.get("/")
 def hello():
     return {"hello": True}
@@ -23,7 +25,7 @@ def download_book_by_name(book_name: str):
     
     if file_path and os.path.exists(file_path):
         return FileResponse(file_path, media_type="application/pdf", filename=f"{book_name}.pdf")
-
+    
     return JSONResponse(content={"error": "File not found"}, status_code=404)
 
 @app.get("/book_title_pdf/{book_name}")
@@ -36,8 +38,6 @@ def book_title_pdf(book_name: str):
     else:
         return JSONResponse(content={"error": "File not found"}, status_code=404)
 
-
-BASE_URL = "https://www.pdfdrive.com"
 
 def download_book(book_name: str):
     """ Searches for a book and downloads it if available """
@@ -54,7 +54,7 @@ def download_book(book_name: str):
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")  # Additional headless flag
 
-    # Make sure the correct ChromeDriver is being used in the container
+    # Ensure using correct ChromeDriver
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
     
@@ -120,12 +120,11 @@ def get_book_url_page(book_name):
     url = f"{BASE_URL}/search?q={book_name}"
     print("Searching URL:", url)
 
-    service = Service(ChromeDriverManager().install())
     options = webdriver.ChromeOptions()
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    driver = webdriver.Chrome(service=service, options=options)
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
     try:
         driver.get(url)
@@ -148,7 +147,8 @@ def get_book_url_page(book_name):
                         new_url = re.sub(r"-e(\d+\.html)$", r"-d\1", book_url)
                         print("Book URL page found:", new_url)
                         return new_url
-            except:
+            except Exception as e:
+                print(f"Error processing book: {e}")
                 continue  
 
     except Exception as e:
@@ -162,7 +162,6 @@ def get_book_url_page(book_name):
 
 def download_request(url, book_name="book"):
     """ Downloads a book and saves it to the 'pdf' folder. """
-
     print("Downloading from:", url)
 
     os.makedirs("pdf", exist_ok=True)
