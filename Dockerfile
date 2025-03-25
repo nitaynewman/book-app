@@ -1,22 +1,16 @@
 ARG PORT=8080
-FROM python:3.9-slim
+FROM cypress/browsers:latest
 
-# Install dependencies for headless chrome (including chromium)
-RUN apt-get update && apt-get install -y \
-    chromium \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get install python3 -y
 
-# Create and activate a virtual environment
-RUN python3 -m venv /opt/venv
+RUN echo $(python3 -m site --user-base)
 
-# Ensure the virtual environment is used
-ENV PATH="/opt/venv/bin:$PATH"
-
-# Install Python dependencies in the virtual environment
 COPY requirements.txt .
-RUN pip install -r requirements.txt
 
-# Copy application code
+ENV PATH /home/root/.local/bin:${PATH}
+
+RUN apt-get update && apt-get install -y python3-pip && pip install -r requirements.txt
+
 COPY . .
 
 # Expose the port
