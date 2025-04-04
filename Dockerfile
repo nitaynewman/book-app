@@ -25,4 +25,4 @@ ENV CHROME_BIN=/usr/bin/google-chrome
 ENV CHROME_DRIVER=/usr/local/bin/chromedriver
 
 # Start FastAPI app
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD uvicorn main:app --host 0.0.0.0 --port 8080
