@@ -8,6 +8,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 import os
 import re
+import time
 import requests
 
 router = APIRouter(
@@ -55,20 +56,14 @@ def get_book_url_page(book_name):
 
     try:
         driver.get(url)
-        print("Navigated to URL")
+        time.sleep(5)
 
-        # Wait for results to load
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "a.ai-search"))
-        )
-        print("Search results loaded")
+        results = driver.find_elements(By.CSS_SELECTOR, "a[href*='-pdf']")
+        print(f"Found {len(results)} result(s)")
 
-        book_links = driver.find_elements(By.CSS_SELECTOR, "a.ai-search")
-
-        for link in book_links:
+        for link in results:
             try:
-                title_element = link.find_element(By.TAG_NAME, "h2")
-                book_title = title_element.text.strip()
+                book_title = link.text.strip()
                 print("Found title:", book_title)
 
                 if book_name.lower() in book_title.lower():
@@ -79,7 +74,7 @@ def get_book_url_page(book_name):
                     return book_url
             except Exception as e:
                 print("Error processing a result:", e)
-                continue
+
 
     except Exception as e:
         print(f"Error fetching book URL: {e}")
