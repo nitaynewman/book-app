@@ -6,7 +6,7 @@ COPY . /app
 RUN apt-get update && apt-get install -y wget unzip gnupg ca-certificates
 
 # Install ChromeDriver (v114)
-RUN wget -q -O /tmp/chromedriver.zip https://chromedriver.storage.googleapis.com/114.0.5735.90/chromedriver_linux64.zip \
+RUN wget -q -O /tmp/chromedriver.zip https://chromedriver.storage.googleapis.com/135.0.0.0/chromedriver_linux64.zip \
     && unzip /tmp/chromedriver.zip -d /usr/local/bin/ \
     && rm /tmp/chromedriver.zip
 
@@ -14,7 +14,6 @@ RUN wget -q -O /tmp/chromedriver.zip https://chromedriver.storage.googleapis.com
 RUN wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
     && apt install -y ./google-chrome-stable_current_amd64.deb \
     && rm google-chrome-stable_current_amd64.deb
-
 
 RUN pip install --no-cache-dir -r requirements.txt
 
