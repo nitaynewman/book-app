@@ -17,11 +17,9 @@ RUN wget -q -O /tmp/chromedriver.zip https://edgedl.me.gvt1.com/edgedl/chrome/ch
 # Install Google Chrome v135
 RUN wget -q -O /tmp/chrome-linux.zip https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/135.0.7049.0/linux64/chrome-linux64.zip \
     && unzip /tmp/chrome-linux.zip -d /opt/ \
-    && ln -s /opt/chrome-linux64/chrome /usr/bin/google-chrome \
+    && ln -sf /opt/chrome-linux64/chrome /usr/bin/google-chrome \
     && rm /tmp/chrome-linux.zip
 
-# Create symlink so Chrome is found where expected
-RUN ln -s /opt/chrome-linux64/chrome /usr/bin/google-chrome
 
 RUN pip install --no-cache-dir -r requirements.txt
 
