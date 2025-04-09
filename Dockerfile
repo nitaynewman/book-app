@@ -5,18 +5,15 @@ COPY . /app
 
 RUN apt-get update && apt-get install -y wget unzip gnupg ca-certificates
 
-# Install ChromeDriver (v122 to match Chrome v122)
-RUN wget -q -O /tmp/chromedriver.zip https://chromedriver.storage.googleapis.com/122.0.6261.112/chromedriver_linux64.zip \
+# Install ChromeDriver (v114)
+RUN wget -q -O /tmp/chromedriver.zip https://chromedriver.storage.googleapis.com/114.0.5735.90/chromedriver_linux64.zip \
     && unzip /tmp/chromedriver.zip -d /usr/local/bin/ \
     && rm /tmp/chromedriver.zip
 
-
-# Install Google Chrome (specific version)
-RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg \
-    && echo "deb [signed-by=/usr/share/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" | tee /etc/apt/sources.list.d/google-chrome.list \
-    && apt-get update \
-    && apt-get install -y google-chrome-stable=122.0.6261.112-1 \
-    && apt-mark hold google-chrome-stable
+# Install Chrome (v114)
+RUN wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
+    && apt install -y ./google-chrome-stable_current_amd64.deb \
+    && rm google-chrome-stable_current_amd64.deb
 
 
 RUN pip install --no-cache-dir -r requirements.txt
