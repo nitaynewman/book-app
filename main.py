@@ -1,35 +1,29 @@
-from fastapi import FastAPI
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-import os
+from fastapi import FastAPI, Query, HTTPException, APIRouter
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+import audio, books
+import requests
+import uvicorn
 
 app = FastAPI()
 
-def download_selenium():
-    chrome_options = webdriver.ChromeOptions()
-    chrome_options.add_argument('--headless')
-    chrome_options.add_argument('--no-sandbox')
-    chrome_options.add_argument('--disable-dev-shm-usage')
+app.include_router(audio.router)
+app.include_router(books.router)
 
-    # Optional: use CHROME_BIN env variable if needed
-    chrome_options.binary_location = os.getenv("CHROME_BIN", "/usr/bin/google-chrome")
+@app.get("/")
+def hello():
+    return {"hello": True}
 
-    driver = webdriver.Chrome(
-        service=Service(os.getenv("CHROME_DRIVER", "/usr/local/bin/chromedriver")),
-        options=chrome_options
-    )
 
-    driver.get('https://google.com')
-    title = driver.title
-    language = driver.find_element(By.XPATH, "//div[@id='SIvCob']").text
-    driver.quit()
-    return {'page title': title, 'language': language}
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-@app.get('/')
-def home():
-    return download_selenium()
+
 
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8080)
