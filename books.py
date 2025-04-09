@@ -32,26 +32,32 @@ def create_driver():
 
 def get_book_url_page(book_name):
     search_url = f"{BASE_URL}/search?q={book_name}"
-    print("Searching URL:", search_url)
+    print(f"Searching URL: {search_url}")
 
     driver = create_driver()
     try:
         driver.get(search_url)
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "ul")))
-        book_items = driver.find_elements(By.CSS_SELECTOR, "ul li")
 
+        # Debug: print the first few book titles in the search results
+        book_items = driver.find_elements(By.CSS_SELECTOR, "ul li")
+        print(f"Found {len(book_items)} book items.")
+        
         for book in book_items:
             try:
                 title_element = book.find_element(By.CSS_SELECTOR, "h2")
                 book_title = title_element.text.strip()
+                print(f"Found book: {book_title}")
+
                 if book_name.lower() in book_title.lower():
                     link_element = book.find_element(By.CSS_SELECTOR, "a")
                     book_url = link_element.get_attribute("href")
                     if book_url:
                         new_url = re.sub(r'-e(\d+\.html)$', r'-d\1', book_url)
-                        print("Book URL page found:", new_url)
+                        print(f"Book URL page found: {new_url}")
                         return new_url
-            except:
+            except Exception as e:
+                print(f"Error processing book item: {e}")
                 continue
     except Exception as e:
         print(f"Error fetching book URL: {e}")
