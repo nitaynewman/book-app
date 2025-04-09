@@ -42,6 +42,7 @@ def book_title_pdf(book_name: str):
 def download_book(book_name: str):
     """ Searches for a book and downloads it if available """
     url = get_book_url_page(book_name)
+    print('this is the url: ', url)
     if not url:
         print("No book URL found")
         return None
@@ -66,6 +67,7 @@ def download_book(book_name: str):
                 EC.presence_of_element_located((By.XPATH, '//*[@id="alternatives"]/div[1]/div/a'))
             )
             download_url = download_button.get_attribute("href")
+            print("download_url", download_url)
         except:
             print("Download button not found, checking for alternative PDF link...")
 
@@ -73,6 +75,7 @@ def download_book(book_name: str):
                 EC.presence_of_element_located((By.XPATH, '//*[@id="alternatives"]/div[1]/a'))
             )
             download_url = alternative_link.get_attribute("href")
+            print("download_url", download_url)
 
             if not download_url.endswith(".pdf"):
                 print(f"Extracting real PDF URL from: {download_url}")
@@ -125,27 +128,37 @@ def get_book_url_page(book_name):
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     driver = webdriver.Chrome(service=Service("/usr/local/bin/chromedriver"), options=options)
+    print("webdriver success:")
 
     try:
         driver.get(url)
+        print("go to url: ", url)
 
         WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.TAG_NAME, "ul"))
         )
-
+        print("went to url: ")
         book_items = driver.find_elements(By.CSS_SELECTOR, "ul li")
+        print("book_items: ", book_items)
 
         for book in book_items:
             try:
                 title_element = book.find_element(By.CSS_SELECTOR, "h2")
+                print("title_element: ", title_element)
+
                 book_title = title_element.text.strip()
+                print("book_title: ", book_title)
 
                 if book_name.lower() in book_title.lower():
                     link_element = book.find_element(By.CSS_SELECTOR, "a")
+                    print("link_element: ", link_element)
+
                     book_url = link_element.get_attribute("href")
+                    print("book_url: ", book_url)
+
                     if book_url:
                         new_url = re.sub(r"-e(\d+\.html)$", r"-d\1", book_url)
-                        print("Book URL page found:", new_url)
+                        print("new_url: ", new_url)
                         return new_url
             except Exception as e:
                 print(f"Error processing book: {e}")
@@ -167,10 +180,14 @@ def download_request(url, book_name="book"):
     os.makedirs("pdf", exist_ok=True)
 
     safe_name = re.sub(r"\W+", "_", book_name)
+    print("safe_name:", safe_name)
+
     file_path = os.path.join("pdf", f"{safe_name}.pdf")
+    print("file_path:", file_path)
 
     try:
         response = requests.get(url, stream=True)
+        print("response:", response)
         if response.status_code != 200:
             error_message = f"Failed to download book. Please check this URL: {url}"
             print(error_message)
@@ -185,4 +202,5 @@ def download_request(url, book_name="book"):
     except Exception as e:
         print(f"Error downloading book: {e}")
         return None
+
 
