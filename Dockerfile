@@ -1,6 +1,6 @@
 FROM python:3.9-slim
 
-# System dependencies
+# Install dependencies
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
@@ -12,7 +12,6 @@ RUN apt-get update && apt-get install -y \
     libasound2 \
     libx11-xcb1 \
     libxcomposite1 \
-    libxcursor1 \
     libxdamage1 \
     libxrandr2 \
     libgbm1 \
@@ -25,21 +24,19 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Google Chrome (version 122)
-RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg \
-    && echo "deb [signed-by=/usr/share/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" | tee /etc/apt/sources.list.d/google-chrome.list \
+# Download and install specific version of Google Chrome manually
+RUN wget https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_122.0.6261.112-1_amd64.deb \
     && apt-get update \
-    && apt-get install -y google-chrome-stable=122.0.6261.112-1 \
-    && apt-mark hold google-chrome-stable \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get install -y ./google-chrome-stable_122.0.6261.112-1_amd64.deb \
+    && rm google-chrome-stable_122.0.6261.112-1_amd64.deb
 
-# Python dependencies
+# Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy your FastAPI app
+# Copy app code
 COPY . /app
 WORKDIR /app
 
-# Run the FastAPI app with Uvicorn
+# Run the app
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
