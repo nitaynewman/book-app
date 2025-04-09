@@ -5,15 +5,20 @@ COPY . /app
 
 RUN apt-get update && apt-get install -y wget unzip gnupg ca-certificates
 
-# Install ChromeDriver (v114)
-RUN wget -q -O /tmp/chromedriver.zip https://chromedriver.storage.googleapis.com/135.0.0.0/chromedriver_linux64.zip \
-    && unzip /tmp/chromedriver.zip -d /usr/local/bin/ \
-    && rm /tmp/chromedriver.zip
+# Install ChromeDriver v135 from Chrome for Testing
+RUN wget -q -O /tmp/chromedriver.zip https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/135.0.7049.0/linux64/chromedriver-linux64.zip \
+    && unzip /tmp/chromedriver.zip -d /tmp/ \
+    && mv /tmp/chromedriver-linux64/chromedriver /usr/local/bin/ \
+    && chmod +x /usr/local/bin/chromedriver \
+    && rm -rf /tmp/chromedriver*
 
-# Install Chrome (v114)
-RUN wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
-    && apt install -y ./google-chrome-stable_current_amd64.deb \
-    && rm google-chrome-stable_current_amd64.deb
+
+# Install Google Chrome v135
+RUN wget -q -O /tmp/chrome-linux.zip https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/135.0.7049.0/linux64/chrome-linux64.zip \
+    && unzip /tmp/chrome-linux.zip -d /opt/ \
+    && ln -s /opt/chrome-linux64/chrome /usr/bin/google-chrome \
+    && rm /tmp/chrome-linux.zip
+
 
 RUN pip install --no-cache-dir -r requirements.txt
 
