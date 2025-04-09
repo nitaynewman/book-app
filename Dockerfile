@@ -1,42 +1,27 @@
-FROM python:3.9-slim
+FROM python:3.8-slim
 
-# Install dependencies
-RUN apt-get update && apt-get install -y \
-    wget \
-    gnupg \
-    unzip \
-    curl \
-    fonts-liberation \
-    libnss3 \
-    libxss1 \
-    libasound2 \
-    libx11-xcb1 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxrandr2 \
-    libgbm1 \
-    libgtk-3-0 \
-    libdrm2 \
-    libxext6 \
-    libxfixes3 \
-    libxi6 \
-    libgl1 \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY . /app
 
-# Download and install specific version of Google Chrome manually
-RUN wget https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_122.0.6261.112-1_amd64.deb \
+RUN apt-get update && apt-get install -y wget unzip gnupg ca-certificates
+
+# Install ChromeDriver (v122 to match Chrome v122)
+RUN wget -q -O /tmp/chromedriver.zip https://chromedriver.storage.googleapis.com/122.0.6261.112/chromedriver_linux64.zip \
+    && unzip /tmp/chromedriver.zip -d /usr/local/bin/ \
+    && rm /tmp/chromedriver.zip
+
+
+# Install Google Chrome (specific version)
+RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" | tee /etc/apt/sources.list.d/google-chrome.list \
     && apt-get update \
-    && apt-get install -y ./google-chrome-stable_122.0.6261.112-1_amd64.deb \
-    && rm google-chrome-stable_122.0.6261.112-1_amd64.deb
+    && apt-get install -y google-chrome-stable=122.0.6261.112-1 \
+    && apt-mark hold google-chrome-stable
 
-# Install Python dependencies
-COPY requirements.txt .
+
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy app code
-COPY . /app
-WORKDIR /app
+ENV CHROME_BIN=/usr/bin/google-chrome
+ENV CHROME_DRIVER=/usr/local/bin/chromedriver
 
-# Run the app
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
