@@ -11,12 +11,11 @@ import re
 import time
 import requests
 
-router = APIRouter(
-    prefix="/books",
-    tags=["books"]
-)
-
+router = APIRouter(prefix="/books", tags=["books"])
 BASE_URL = "https://www.pdfdrive.com"
+
+PDF_FOLDER = "pdf"
+CHROMEDRIVER_PATH = "/usr/local/bin/chromedriver"
 
 @router.get("/download_book/{book_name}")
 def download_book_by_name(book_name: str):
@@ -28,7 +27,7 @@ def download_book_by_name(book_name: str):
 @router.get("/book_title_pdf/{book_name}")
 def book_title_pdf(book_name: str):
     safe_name = re.sub(r"\W+", "_", book_name)
-    file_path = f"pdf/{safe_name}.pdf"
+    file_path = os.path.join(PDF_FOLDER, f"{safe_name}.pdf")
     if os.path.exists(file_path):
         return {"file_path": file_path}
     return JSONResponse(content={"error": "File not found"}, status_code=404)
@@ -39,69 +38,52 @@ def setup_driver():
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
-    service = Service("/usr/local/bin/chromedriver")
-    return webdriver.Chrome(service=service, options=options)
+    return webdriver.Chrome(service=Service(CHROMEDRIVER_PATH), options=options)
 
 def get_book_url_page(book_name):
-    """ Searches for a book and returns the book page URL """
-    url = f"{BASE_URL}/search?q={book_name}"
+    url = f"{BASE_URL}/search?q={book_name.replace(' ', '+')}"
     print("Searching URL:", url)
 
-    options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    driver = webdriver.Chrome(service=Service("/usr/local/bin/chromedriver"), options=options)
-    print("webdriver started")
-
+    driver = setup_driver()
     try:
         driver.get(url)
-        time.sleep(5)
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "a.ai-search")))
 
-        results = driver.find_elements(By.CSS_SELECTOR, "a[href*='-pdf']")
+        results = driver.find_elements(By.CSS_SELECTOR, "a.ai-search")
         print(f"Found {len(results)} result(s)")
 
         for link in results:
-            try:
-                book_title = link.text.strip()
-                print("Found title:", book_title)
+            title_element = link.find_element(By.CSS_SELECTOR, "h2")
+            title = title_element.text.strip()
+            print("Found title:", title)
 
-                if book_name.lower() in book_title.lower():
-                    book_url = link.get_attribute("href")
-                    print("Book URL:", book_url)
-                    if not book_url.startswith("http"):
-                        book_url = BASE_URL + book_url
-                    return book_url
-            except Exception as e:
-                print("Error processing a result:", e)
-
-
+            if book_name.lower() in title.lower():
+                book_url = link.get_attribute("href")
+                print("Book URL:", book_url)
+                return book_url
     except Exception as e:
-        print(f"Error fetching book URL: {e}")
-        return None
+        print("Error fetching book URL:", e)
     finally:
         driver.quit()
 
     return None
 
-
 def extract_pdf_link(book_page_url):
     print("Opening book page:", book_page_url)
-
     driver = setup_driver()
+
     try:
         driver.get(book_page_url)
-        download_btn = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "#download-button-link"))
+        WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.ID, "download-button-link")))
+
+        btn = driver.find_element(By.ID, "download-button-link")
+        intermediate_url = btn.get_attribute("href")
+
+        driver.get(intermediate_url)
+
+        final_link = WebDriverWait(driver, 30).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "a.btn-user"))
         )
-        btn_href = download_btn.get_attribute("href")
-        print("Initial download URL:", btn_href)
-
-        # Click to go to final download page
-        driver.get(btn_href)
-
-        final_link = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "a.btn-user")))
         pdf_url = final_link.get_attribute("href")
         print("Final PDF link:", pdf_url)
 
@@ -111,14 +93,15 @@ def extract_pdf_link(book_page_url):
         print("Could not extract PDF URL:", e)
     finally:
         driver.quit()
+
     return None
 
 def download_request(url, book_name):
     print("Downloading from:", url)
-    os.makedirs("pdf", exist_ok=True)
+    os.makedirs(PDF_FOLDER, exist_ok=True)
 
     safe_name = re.sub(r"\W+", "_", book_name)
-    file_path = os.path.join("pdf", f"{safe_name}.pdf")
+    file_path = os.path.join(PDF_FOLDER, f"{safe_name}.pdf")
 
     try:
         response = requests.get(url, stream=True)
