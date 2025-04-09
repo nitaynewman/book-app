@@ -42,37 +42,53 @@ def setup_driver():
     return webdriver.Chrome(service=service, options=options)
 
 def get_book_url_page(book_name):
-    search_url = f"{BASE_URL}/search?q={book_name}"
-    print("Searching:", search_url)
+    """ Searches for a book and returns the book page URL """
+    url = f"{BASE_URL}/search?q={book_name}"
+    print("Searching URL:", url)
 
-    driver = setup_driver()
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    driver = webdriver.Chrome(service=Service("/usr/local/bin/chromedriver"), options=options)
+    print("webdriver started")
+
     try:
-        driver.get(search_url)
+        driver.get(url)
+        print("Navigated to URL")
 
+        # Wait for results to load
         WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, ".files-new"))
+            EC.presence_of_element_located((By.CSS_SELECTOR, "a.ai-search"))
         )
-        results = driver.find_elements(By.CSS_SELECTOR, ".file-left")
-        print(f"Found {len(results)} results")
+        print("Search results loaded")
 
-        for result in results:
+        book_links = driver.find_elements(By.CSS_SELECTOR, "a.ai-search")
+
+        for link in book_links:
             try:
-                title_el = result.find_element(By.CSS_SELECTOR, "a > h2")
-                title_text = title_el.text.strip()
-                print("Book found:", title_text)
+                title_element = link.find_element(By.TAG_NAME, "h2")
+                book_title = title_element.text.strip()
+                print("Found title:", book_title)
 
-                if book_name.lower() in title_text.lower():
-                    book_link = result.find_element(By.CSS_SELECTOR, "a").get_attribute("href")
-                    print("Book page:", book_link)
-                    return book_link
+                if book_name.lower() in book_title.lower():
+                    book_url = link.get_attribute("href")
+                    print("Book URL:", book_url)
+                    if not book_url.startswith("http"):
+                        book_url = BASE_URL + book_url
+                    return book_url
             except Exception as e:
                 print("Error processing a result:", e)
                 continue
+
     except Exception as e:
-        print("Failed to search:", e)
+        print(f"Error fetching book URL: {e}")
+        return None
     finally:
         driver.quit()
+
     return None
+
 
 def extract_pdf_link(book_page_url):
     print("Opening book page:", book_page_url)
