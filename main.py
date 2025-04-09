@@ -1,8 +1,6 @@
-from fastapi import FastAPI, Query, HTTPException, APIRouter
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 import audio, books
-import requests
 import uvicorn
 
 app = FastAPI()

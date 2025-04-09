@@ -1,124 +1,156 @@
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query
 from fastapi.responses import FileResponse
+import os
+import re
+import requests
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from urllib.parse import quote_plus
-import re
-import time
-import os
-import requests
+from selenium.webdriver.chrome.service import Service
+
+BASE_URL = "https://www.pdfdrive.com"
+PDF_FOLDER = "pdf"
+CHROME_BIN = os.getenv("CHROME_BIN", "/usr/bin/google-chrome")
+CHROME_DRIVER = os.getenv("CHROME_DRIVER", "/usr/local/bin/chromedriver")
+
+# Ensure PDF folder exists
+os.makedirs(PDF_FOLDER, exist_ok=True)
 
 router = APIRouter(prefix="/books", tags=["books"])
 
-BASE_URL = "https://www.pdfdrive.com"
-PDF_FOLDER = "./pdf"
-
-# Make sure the pdf directory exists
-os.makedirs(PDF_FOLDER, exist_ok=True)
-
 def create_driver():
-    chrome_options = Options()
-    chrome_options.add_argument("--headless=new")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--window-size=1920,1080")
-    return webdriver.Chrome(options=chrome_options)
+    options = webdriver.ChromeOptions()
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")
+    options.binary_location = CHROME_BIN
 
-def find_book_url(driver, book_name: str) -> str:
-    search_url = f"{BASE_URL}/search?q={quote_plus(book_name)}"
-    driver.get(search_url)
+    service = Service(CHROME_DRIVER)
+    return webdriver.Chrome(service=service, options=options)
 
-    ul = WebDriverWait(driver, 15).until(
-        EC.presence_of_element_located((By.CLASS_NAME, 'files-new'))
-    )
+def get_book_url_page(book_name):
+    search_url = f"{BASE_URL}/search?q={book_name}"
+    print("Searching URL:", search_url)
 
-    target_title = book_name.lower().strip()
-    li_elements = ul.find_elements(By.TAG_NAME, 'li')
-
-    for li in li_elements:
-        try:
-            h2 = li.find_element(By.TAG_NAME, "h2")
-            title = h2.text.lower().strip()
-            if title == target_title:
-                href = li.find_element(By.TAG_NAME, "a").get_attribute("href")
-                return href
-        except:
-            continue
-
-    return None
-
-def convert_to_download_page_url(book_url):
-    return re.sub(r'-e(\d+)\.html$', r'-d\1.html', book_url)
-
-def extract_pdf_from_viewer(url):
-    # This function is a placeholder if PDFDrive uses a viewer (not direct link)
-    # You could potentially scrape it here
-    print(f"[!] Viewer PDF extraction not implemented for: {url}")
-    return None
-
-def download_pdf(driver, book_name: str, download_page_url: str) -> str:
-    driver.get(download_page_url)
-    time.sleep(30)  # Wait for page to fully load
-
-    download_url = None
-
-    try:
-        download_button = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, '//*[@id="alternatives"]/div[1]/div/a'))
-        )
-        download_url = download_button.get_attribute("href")
-    except:
-        try:
-            alt_link = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, '//*[@id="alternatives"]/div[1]/a'))
-            )
-            download_url = alt_link.get_attribute("href")
-
-            if not download_url.endswith(".pdf"):
-                download_url = extract_pdf_from_viewer(download_url)
-        except:
-            pass
-
-    if not download_url:
-        return None
-
-    # Download the PDF file
-    filename = f"{book_name.replace(' ', '_').lower()}.pdf"
-    filepath = os.path.join(PDF_FOLDER, filename)
-
-    response = requests.get(download_url, stream=True)
-    if response.status_code == 200:
-        with open(filepath, 'wb') as f:
-            for chunk in response.iter_content(1024):
-                f.write(chunk)
-        return filepath
-    else:
-        return None
-
-@router.get("/download")
-def download_book(book: str = Query(..., description="Book title to search and download")):
     driver = create_driver()
-
     try:
-        print(f"[1] Searching for: {book}")
-        book_url = find_book_url(driver, book)
-        if not book_url:
-            raise HTTPException(status_code=404, detail="Book not found")
+        driver.get(search_url)
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "ul")))
+        book_items = driver.find_elements(By.CSS_SELECTOR, "ul li")
 
-        download_page = convert_to_download_page_url(book_url)
-        print(f"[2] Converted download URL: {download_page}")
-
-        file_path = download_pdf(driver, book, download_page)
-        if not file_path or not os.path.exists(file_path):
-            raise HTTPException(status_code=500, detail="Failed to download the book")
-
-        print(f"[3] Successfully downloaded: {file_path}")
-        return FileResponse(path=file_path, filename=os.path.basename(file_path), media_type='application/pdf')
-
+        for book in book_items:
+            try:
+                title_element = book.find_element(By.CSS_SELECTOR, "h2")
+                book_title = title_element.text.strip()
+                if book_name.lower() in book_title.lower():
+                    link_element = book.find_element(By.CSS_SELECTOR, "a")
+                    book_url = link_element.get_attribute("href")
+                    if book_url:
+                        new_url = re.sub(r'-e(\d+\.html)$', r'-d\1', book_url)
+                        print("Book URL page found:", new_url)
+                        return new_url
+            except:
+                continue
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"Error fetching book URL: {e}")
     finally:
         driver.quit()
+
+    return None
+
+def extract_pdf_from_viewer(viewer_url):
+    try:
+        response = requests.get(viewer_url)
+        if response.status_code != 200:
+            print("Failed to access the PDF viewer page.")
+            return None
+
+        match = re.search(r'href="(https?://[^"]+\.pdf)"', response.text)
+        if match:
+            return match.group(1)
+    except Exception as e:
+        print(f"Error extracting PDF link: {e}")
+    return None
+
+def download_request(url, book_name="book"):
+    print("Downloading from:", url)
+    safe_name = re.sub(r'\W+', '_', book_name)
+    file_path = os.path.join(PDF_FOLDER, f"{safe_name}.pdf")
+
+    try:
+        response = requests.get(url, stream=True)
+        if response.status_code != 200:
+            print(f"Failed to download book. Check URL: {url}")
+            return None
+
+        with open(file_path, "wb") as file:
+            for chunk in response.iter_content(chunk_size=8192):
+                file.write(chunk)
+
+        print(f"Downloaded successfully: {file_path}")
+        return file_path
+    except Exception as e:
+        print(f"Error downloading book: {e}")
+        return None
+
+def download_book(book_name: str):
+    url = get_book_url_page(book_name)
+    if not url:
+        print("No book URL found")
+        return None
+
+    driver = create_driver()
+    try:
+        driver.get(url)
+        try:
+            download_button = WebDriverWait(driver, 30).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@id="alternatives"]/div[1]/div/a'))
+            )
+            download_url = download_button.get_attribute("href")
+        except:
+            print("Primary download button not found. Checking alternatives...")
+            alternative_link = WebDriverWait(driver, 30).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@id="alternatives"]/div[1]/a'))
+            )
+            download_url = alternative_link.get_attribute("href")
+            if not download_url.endswith(".pdf"):
+                download_url = extract_pdf_from_viewer(download_url)
+                if not download_url:
+                    return None
+
+        if not download_url:
+            return None
+
+        return download_request(download_url, book_name)
+    except Exception as e:
+        print(f"Error during download process: {e}")
+        return None
+    finally:
+        driver.quit()
+
+def book_title_pdf(book_name):
+    safe_name = re.sub(r'\W+', '_', book_name)
+    file_path = os.path.join(PDF_FOLDER, f"{safe_name}.pdf")
+    return file_path if os.path.exists(file_path) else None
+
+@router.get("/get_book_url")
+def get_book_url(book_name: str):
+    return get_book_url_page(book_name)
+
+@router.get("/book_title_pdf")
+def get_pdf_path(book_name: str):
+    path = book_title_pdf(book_name)
+    return path if path else {"error": "File not found"}
+
+@router.get("/download_book")
+def download_book_by_name(book_name: str = Query(..., description="Name of the book to download")):
+    file_path = book_title_pdf(book_name)
+    if not file_path:
+        file_path = download_book(book_name)
+
+    if file_path and os.path.exists(file_path):
+        return FileResponse(path=file_path, filename=os.path.basename(file_path), media_type="application/pdf")
+    return {"error": "Book could not be downloaded."}
+
