@@ -21,11 +21,11 @@ router = APIRouter(prefix="/books", tags=["books"])
 
 def create_driver():
     options = webdriver.ChromeOptions()
-    options.add_argument("--headless")
+    options.add_argument("--headless=new")  # NEW headless mode required for Chrome 109+
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
-    options.binary_location = CHROME_BIN
+    # No need to set binary_location unless you install Chrome in a weird place
 
     service = Service(CHROME_DRIVER)
     return webdriver.Chrome(service=service, options=options)
