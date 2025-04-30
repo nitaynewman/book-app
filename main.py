@@ -61,14 +61,9 @@ async def generate_audio(book_name: str, voice: str = "male"):
         return {"error": f"PDF not found for book: {book_name}"}
 
     converter = PDFToMP3Converter()
-    safe_book_name = Path(book_name).stem.replace(" ", "_")
-    mp3_path = os.path.join(converter.output_dir, f"{safe_book_name}.mp3")
+    await converter.convert_with_voice(pdf_path, voice)
 
-    if voice == "male":
-        converter.convert(pdf_path)
-    else:
-        await converter.convert_with_voice(pdf_path, voice)
-
+    mp3_path = os.path.join(converter.output_dir, f"{book_name}.mp3")
     if not os.path.exists(mp3_path):
         return {"error": f"MP3 file not generated at {mp3_path}"}
 
@@ -76,9 +71,8 @@ async def generate_audio(book_name: str, voice: str = "male"):
         mp3_path,
         media_type="audio/mpeg",
         filename=os.path.basename(mp3_path),
-        background=BackgroundTask(cleanup_folders)  # <== the key difference
+        background=BackgroundTask(cleanup_folders)
     )
-
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8080)
