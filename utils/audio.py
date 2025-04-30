@@ -63,13 +63,21 @@ class PDFToMP3Converter:
             return
 
         text = self.extract_text(file)
+        print(f"Extracted text length: {len(text)}")
+
         if not text:
             print(f"Error: No text found in {file}.")
             return
 
+        max_chars = 3000
+        text = text[:max_chars]
+        print(f"Trimmed text to {len(text)} characters")
+
+
         selected_voice = self.voices.get(voice, "en-US-GuyNeural")
         safe_name = os.path.splitext(os.path.basename(file))[0]
         mp3_filename = os.path.join(self.output_dir, f"{safe_name}.mp3")
+        print(f"Saving MP3 to: {mp3_filename} with voice: {selected_voice}")
 
         try:
             communicate = edge_tts.Communicate(text, selected_voice)

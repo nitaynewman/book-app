@@ -8,6 +8,8 @@ import urllib.parse
 import shutil
 import uvicorn
 from starlette.background import BackgroundTask
+from pathlib import Path
+
 
 app = FastAPI()
 
@@ -51,37 +53,31 @@ def get_book(book_name: str, background_tasks: BackgroundTasks):
     return FileResponse(file_path, filename=os.path.basename(file_path), media_type='application/pdf')
 
 
-from fastapi import HTTPException
-
 @app.get("/audio_from_book")
 async def generate_audio(book_name: str, voice: str = "male"):
-    try:
-        decoded_name = urllib.parse.unquote(book_name)
-        pdf_path = download_book(decoded_name)
+    pdf_path = download_book(book_name)
 
-        if not pdf_path or not os.path.exists(pdf_path):
-            raise HTTPException(status_code=404, detail=f"PDF not found for book: {decoded_name}")
+    if not pdf_path or not os.path.exists(pdf_path):
+        return {"error": f"PDF not found for book: {book_name}"}
 
-        converter = PDFToMP3Converter()
-        mp3_path = os.path.join(converter.output_dir, f"{decoded_name}.mp3")
+    converter = PDFToMP3Converter()
+    safe_book_name = Path(book_name).stem.replace(" ", "_")
+    mp3_path = os.path.join(converter.output_dir, f"{safe_book_name}.mp3")
 
-        if voice == "male":
-            converter.convert(pdf_path)
-        else:
-            await converter.convert_with_voice(pdf_path, voice)
+    if voice == "male":
+        converter.convert(pdf_path)
+    else:
+        await converter.convert_with_voice(pdf_path, voice)
 
-        if not os.path.exists(mp3_path):
-            raise HTTPException(status_code=500, detail="MP3 file not generated")
+    if not os.path.exists(mp3_path):
+        return {"error": f"MP3 file not generated at {mp3_path}"}
 
-        return FileResponse(
-            mp3_path,
-            media_type="audio/mpeg",
-            filename=os.path.basename(mp3_path),
-            background=BackgroundTask(cleanup_folders)
-        )
-    except Exception as e:
-        print(f"Server error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    return FileResponse(
+        mp3_path,
+        media_type="audio/mpeg",
+        filename=os.path.basename(mp3_path),
+        background=BackgroundTask(cleanup_folders)  # <== the key difference
+    )
 
 
 if __name__ == "__main__":
