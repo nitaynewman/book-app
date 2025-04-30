@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import FastAPI, BackgroundTasks
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,6 +10,11 @@ import shutil
 import uvicorn
 from starlette.background import BackgroundTask
 from pathlib import Path
+from uuid import uuid4
+import threading
+
+# In-memory job tracker
+job_results = {}
 
 
 app = FastAPI()
@@ -52,41 +58,51 @@ def get_book(book_name: str, background_tasks: BackgroundTasks):
     background_tasks.add_task(cleanup_folders)
     return FileResponse(file_path, filename=os.path.basename(file_path), media_type='application/pdf')
 
+@app.get("/audio_status/{job_id}")
+def get_audio_status(job_id: str):
+    job = job_results.get(job_id)
+    if not job:
+        return {"status": "not_found"}
+
+    if job["status"] == "completed":
+        return FileResponse(
+            job["file_path"],
+            media_type="audio/mpeg",
+            filename=os.path.basename(job["file_path"]),
+            background=BackgroundTask(cleanup_folders)
+        )
+
+    return job
+
+
 
 @app.get("/audio_from_book")
-async def generate_audio(book_name: str, background_tasks: BackgroundTasks, voice: str = "male"):
-    print("[audio] Start")
-    decoded_name = urllib.parse.unquote(book_name)
-    print(f"[audio] Decoded name: {decoded_name}")
+def generate_audio_async(book_name: str, voice: str = "male"):
+    job_id = str(uuid4())
+    job_results[job_id] = {"status": "processing", "file_path": None}
 
-    file_path = download_book(decoded_name)
-    print(f"[audio] Downloaded file path: {file_path}")
+    def process():
+        try:
+            decoded_name = urllib.parse.unquote(book_name)
+            file_path = download_book(decoded_name)
+            if not file_path or not os.path.exists(file_path):
+                job_results[job_id] = {"status": "failed", "reason": "Download failed"}
+                return
 
-    if not file_path or not os.path.exists(file_path):
-        print("[audio] PDF file not found.")
-        return {"error": "Download failed or file not found"}
+            converter = PDFToMP3Converter()
+            asyncio.run(converter.convert_with_voice(file_path, voice))
+            mp3_path = os.path.join(converter.output_dir, f"{book_name}.mp3")
+            if not os.path.exists(mp3_path):
+                job_results[job_id] = {"status": "failed", "reason": "MP3 not created"}
+                return
 
-    print("[audio] Initializing converter")
-    converter = PDFToMP3Converter()
+            job_results[job_id] = {"status": "completed", "file_path": mp3_path}
+        except Exception as e:
+            job_results[job_id] = {"status": "failed", "reason": str(e)}
 
-    print("[audio] Starting conversion")
-    await converter.convert_with_voice(file_path, voice)
-    print("[audio] Conversion complete")
+    threading.Thread(target=process).start()
 
-    mp3_path = os.path.join(converter.output_dir, f"{book_name}.mp3")
-    print(f"[audio] MP3 path: {mp3_path}")
-
-    if not os.path.exists(mp3_path):
-        print("[audio] MP3 file not generated.")
-        return {"error": f"MP3 file not generated at {mp3_path}"}
-
-    print("[audio] Returning MP3 response")
-    return FileResponse(
-        mp3_path,
-        media_type="audio/mpeg",
-        filename=os.path.basename(mp3_path),
-        background=BackgroundTask(cleanup_folders)
-    )
+    return {"message": "Processing started", "job_id": job_id}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8080)
