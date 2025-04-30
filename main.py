@@ -55,7 +55,8 @@ def get_book(book_name: str, background_tasks: BackgroundTasks):
 
 @app.get("/audio_from_book")
 async def generate_audio(book_name: str, voice: str = "male"):
-    pdf_path = download_book(book_name)
+    decoded_name = urllib.parse.unquote(book_name)
+    pdf_path = download_book(decoded_name)
 
     if not pdf_path or not os.path.exists(pdf_path):
         return {"error": f"PDF not found for book: {book_name}"}
