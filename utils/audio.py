@@ -86,8 +86,9 @@ class PDFToMP3Converter:
         except Exception as e:
             print(f"Error generating MP3: {e}")
 
-    async def convert_with_voice(self, file: str, voice: str = "male"):
+    async def convert_with_voice(self, pdf_path: str, voice: str):
+        print(f"[convert_with_voice] Starting conversion of: {pdf_path}")
         if asyncio.get_event_loop().is_running():
-            await self.convert_async(file, voice)
+            await self.convert_async(pdf_path, voice)
         else:
-            asyncio.run(self.convert_async(file, voice))
+            asyncio.run(self.convert_async(pdf_path, voice))

@@ -54,20 +54,33 @@ def get_book(book_name: str, background_tasks: BackgroundTasks):
 
 
 @app.get("/audio_from_book")
-async def generate_audio(book_name: str, voice: str = "male"):
+async def generate_audio(book_name: str, background_tasks: BackgroundTasks, voice: str = "male"):
+    print("[audio] Start")
     decoded_name = urllib.parse.unquote(book_name)
-    pdf_path = download_book(decoded_name)
+    print(f"[audio] Decoded name: {decoded_name}")
 
-    if not pdf_path or not os.path.exists(pdf_path):
-        return {"error": f"PDF not found for book: {book_name}"}
+    file_path = download_book(decoded_name)
+    print(f"[audio] Downloaded file path: {file_path}")
 
+    if not file_path or not os.path.exists(file_path):
+        print("[audio] PDF file not found.")
+        return {"error": "Download failed or file not found"}
+
+    print("[audio] Initializing converter")
     converter = PDFToMP3Converter()
-    await converter.convert_with_voice(pdf_path, voice)
+
+    print("[audio] Starting conversion")
+    await converter.convert_with_voice(file_path, voice)
+    print("[audio] Conversion complete")
 
     mp3_path = os.path.join(converter.output_dir, f"{book_name}.mp3")
+    print(f"[audio] MP3 path: {mp3_path}")
+
     if not os.path.exists(mp3_path):
+        print("[audio] MP3 file not generated.")
         return {"error": f"MP3 file not generated at {mp3_path}"}
 
+    print("[audio] Returning MP3 response")
     return FileResponse(
         mp3_path,
         media_type="audio/mpeg",
