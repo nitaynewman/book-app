@@ -51,30 +51,37 @@ def get_book(book_name: str, background_tasks: BackgroundTasks):
     return FileResponse(file_path, filename=os.path.basename(file_path), media_type='application/pdf')
 
 
+from fastapi import HTTPException
+
 @app.get("/audio_from_book")
 async def generate_audio(book_name: str, voice: str = "male"):
-    pdf_path = download_book(book_name)
+    try:
+        decoded_name = urllib.parse.unquote(book_name)
+        pdf_path = download_book(decoded_name)
 
-    if not pdf_path or not os.path.exists(pdf_path):
-        return {"error": f"PDF not found for book: {book_name}"}
+        if not pdf_path or not os.path.exists(pdf_path):
+            raise HTTPException(status_code=404, detail=f"PDF not found for book: {decoded_name}")
 
-    converter = PDFToMP3Converter()
-    mp3_path = os.path.join(converter.output_dir, f"{book_name}.mp3")
+        converter = PDFToMP3Converter()
+        mp3_path = os.path.join(converter.output_dir, f"{decoded_name}.mp3")
 
-    if voice == "male":
-        converter.convert(pdf_path)
-    else:
-        await converter.convert_with_voice(pdf_path, voice)
+        if voice == "male":
+            converter.convert(pdf_path)
+        else:
+            await converter.convert_with_voice(pdf_path, voice)
 
-    if not os.path.exists(mp3_path):
-        return {"error": "MP3 file not generated"}
+        if not os.path.exists(mp3_path):
+            raise HTTPException(status_code=500, detail="MP3 file not generated")
 
-    return FileResponse(
-        mp3_path,
-        media_type="audio/mpeg",
-        filename=os.path.basename(mp3_path),
-        background=BackgroundTask(cleanup_folders)  # <== the key difference
-    )
+        return FileResponse(
+            mp3_path,
+            media_type="audio/mpeg",
+            filename=os.path.basename(mp3_path),
+            background=BackgroundTask(cleanup_folders)
+        )
+    except Exception as e:
+        print(f"Server error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":
