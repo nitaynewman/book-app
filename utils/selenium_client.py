@@ -39,7 +39,7 @@ def wait_for_file(download_dir, timeout=30):
     while seconds < timeout:
         files = [f for f in os.listdir(download_dir) if f.endswith(".pdf")]
         if files:
-            print(f"Found {files[0]} in the download directory.")
+            print(f"Found {files[0]} in the download directory. {download_dir}")
             return os.path.join(download_dir, files[0])
         time.sleep(1)
         seconds += 1
