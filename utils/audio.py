@@ -1,16 +1,16 @@
 import os
-import re
-import pyttsx3
-import PyPDF2
-import pdfplumber
-import edge_tts
 import asyncio
+import tempfile
+import edge_tts
+import pdfplumber
+from uuid import uuid4
+from pydub import AudioSegment
 
 
 class PDFToMP3Converter:
     def __init__(self):
         self.base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-        self.output_dir = os.path.join(self.base_dir, "mp3")  # changed from test/mp3
+        self.output_dir = os.path.join(self.base_dir, "mp3")
         os.makedirs(self.output_dir, exist_ok=True)
 
         self.voices = {
@@ -24,67 +24,56 @@ class PDFToMP3Converter:
             "Indian-female": "en-IN-NeerjaNeural"
         }
 
-    def convert(self, pdf_path):
-        if not os.path.isfile(pdf_path):
-            print(f"File {pdf_path} not found.")
-            return
-
+    def extract_text(self, file_path: str) -> str:
         try:
-            pdfreader = PyPDF2.PdfReader(open(pdf_path, 'rb'))
-            speaker = pyttsx3.init()
-            full_text = ""
-
-            for num in range(len(pdfreader.pages)):
-                text = pdfreader.pages[num].extract_text()
-                clean_txt = text.strip().replace('\n', ' ') if text else ''
-                full_text += clean_txt + " "
-
-            mp3_filename = os.path.join(self.output_dir, os.path.splitext(os.path.basename(pdf_path))[0] + '.mp3')
-            speaker.save_to_file(full_text, mp3_filename)
-            speaker.runAndWait()
-            speaker.stop()
-
-            print(f"MP3 created at: {mp3_filename}")
+            with pdfplumber.open(file_path) as pdf:
+                pages_text = [page.extract_text() for page in pdf.pages if page.extract_text()]
+            return "\n".join(pages_text).strip()
         except Exception as e:
-            print(f"Error during MP3 generation: {e}")
-
-    def extract_text(self, file: str) -> str:
-        try:
-            with pdfplumber.open(file) as pdf:
-                text = "\n".join([page.extract_text() for page in pdf.pages if page.extract_text()])
-            return text.strip()
-        except Exception as e:
-            print(f"Error reading {file}: {e}")
+            print(f"Error reading {file_path}: {e}")
             return ""
 
-    async def convert_async(self, file: str, voice: str = "male"):
-        if not os.path.isfile(file):
-            print(f"Error: File {file} not found.")
+    async def convert_async(self, file_path: str, voice: str = "male"):
+        if not os.path.isfile(file_path):
+            print(f"Error: File {file_path} not found.")
             return
 
-        text = self.extract_text(file)
-        print(f"Extracted text length: {len(text)}")
-
+        text = self.extract_text(file_path)
         if not text:
-            print(f"Error: No text found in {file}.")
+            print(f"Error: No text found in {file_path}.")
             return
-
-        max_chars = 3000
-        text = text[:max_chars]
-        print(f"Trimmed text to {len(text)} characters")
-
 
         selected_voice = self.voices.get(voice, "en-US-GuyNeural")
-        safe_name = os.path.splitext(os.path.basename(file))[0]
-        mp3_filename = os.path.join(self.output_dir, f"{safe_name}.mp3")
-        print(f"Saving MP3 to: {mp3_filename} with voice: {selected_voice}")
+        safe_name = os.path.splitext(os.path.basename(file_path))[0]
+        final_output_path = os.path.join(self.output_dir, f"{safe_name}.mp3")
 
-        try:
-            communicate = edge_tts.Communicate(text, selected_voice)
-            await communicate.save(mp3_filename)
-            print(f"MP3 created asynchronously at: {mp3_filename}")
-        except Exception as e:
-            print(f"Error generating MP3: {e}")
+        max_chars = 3000
+        chunks = [text[i:i + max_chars] for i in range(0, len(text), max_chars)]
+        print(f"Total chunks: {len(chunks)}")
+
+        combined = AudioSegment.empty()
+
+        for i, chunk in enumerate(chunks):
+            chunk_id = f"{uuid4().hex[:6]}"
+            temp_path = os.path.join(tempfile.gettempdir(), f"{safe_name}_chunk_{chunk_id}.mp3")
+            print(f"[{i + 1}/{len(chunks)}] Generating chunk to: {temp_path}")
+
+            try:
+                communicate = edge_tts.Communicate(chunk, selected_voice)
+                await communicate.save(temp_path)
+
+                if not os.path.exists(temp_path):
+                    raise FileNotFoundError(f"Chunk not found after generation: {temp_path}")
+
+                segment = AudioSegment.from_file(temp_path, format="mp3")
+                combined += segment
+
+            except Exception as e:
+                print(f"Error generating or loading MP3 chunk {i + 1}: {e}")
+                continue
+
+        combined.export(final_output_path, format="mp3")
+        print(f"✅ Final MP3 created at: {final_output_path}")
 
     async def convert_with_voice(self, pdf_path: str, voice: str):
         print(f"[convert_with_voice] Starting conversion of: {pdf_path}")

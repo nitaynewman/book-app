@@ -85,6 +85,8 @@ def generate_audio_async(book_name: str, voice: str = "male"):
         try:
             decoded_name = urllib.parse.unquote(book_name)
             file_path = download_book(decoded_name)
+            # file_path = 'pdf/12 Rules For Life.pdf'
+
             if not file_path or not os.path.exists(file_path):
                 job_results[job_id] = {"status": "failed", "reason": "Download failed"}
                 return
