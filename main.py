@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Query, HTTPException, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from routes import book_pdf, Audio, blog, user_book, auth, portfolio, clean_file
+from routes import book_pdf, Audio, blog, user_book, auth, portfolio, clean_file, investments
 import requests
 import uvicorn
 
@@ -16,6 +16,7 @@ app.include_router(user_book.router)
 app.include_router(auth.router)
 app.include_router(portfolio.router)
 app.include_router(clean_file.router)
+app.include_router(investments.router)
 
 
 app.add_middleware(
