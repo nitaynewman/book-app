@@ -39,7 +39,7 @@ def search_company_symbols(query: str):
     except Exception as e:
         return []
 
-@router.post("/search-company")
+@router.post("/")
 def search_company(input: CompanyInput):
     results = search_company_symbols(input.company_name)
 
