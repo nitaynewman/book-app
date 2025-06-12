@@ -45,7 +45,7 @@ def cleanup_folders():
         if os.path.exists(folder):
             try:
                 shutil.rmtree(folder)
-                os.makedirs(folder, exist_ok=True)  # Recreate the folder
+                os.makedirs(folder, exist_ok=True)
                 logger.info(f"Cleaned folder: {folder}")
                 folder_counter += 1
             except Exception as e:
@@ -68,7 +68,6 @@ def get_book(book_name: str, background_tasks: BackgroundTasks):
         if not file_path or not os.path.exists(file_path):
             raise HTTPException(status_code=404, detail="Download failed or file not found")
 
-        # Add cleanup task to run after response is sent
         background_tasks.add_task(cleanup_folders)
         
         return FileResponse(
@@ -80,11 +79,44 @@ def get_book(book_name: str, background_tasks: BackgroundTasks):
         logger.error(f"Error in get_book: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-async def file_streamer(file_path: str, chunk_size: int = 8192):
-    """Stream file in chunks to handle large files"""
-    async with aiofiles.open(file_path, 'rb') as file:
-        while chunk := await file.read(chunk_size):
+def iterfile(file_path: str, chunk_size: int = 8192):
+    """Generator to read file in chunks"""
+    with open(file_path, 'rb') as file:
+        while True:
+            chunk = file.read(chunk_size)
+            if not chunk:
+                break
             yield chunk
+
+@app.get("/download/{job_id}")
+async def download_audio_file(job_id: str):
+    """Direct download endpoint for audio files"""
+    job = job_results.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    if job["status"] != "completed":
+        raise HTTPException(status_code=400, detail=f"Job not ready. Status: {job['status']}")
+    
+    file_path = job["file_path"]
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    file_size = os.path.getsize(file_path)
+    filename = os.path.basename(file_path)
+    
+    logger.info(f"Serving file: {filename} ({file_size / (1024*1024):.1f}MB)")
+    
+    return StreamingResponse(
+        iterfile(file_path),
+        media_type="audio/mpeg",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Length": str(file_size),
+            "Accept-Ranges": "bytes",
+            "Cache-Control": "no-cache"
+        }
+    )
 
 @app.get("/audio_status/{job_id}")
 async def get_audio_status(job_id: str):
@@ -94,36 +126,16 @@ async def get_audio_status(job_id: str):
 
     if job["status"] == "completed":
         if not os.path.exists(job["file_path"]):
-            # File was deleted, update job status
             job_results[job_id] = {"status": "failed", "reason": "File no longer exists"}
             raise HTTPException(status_code=404, detail="Generated file no longer exists")
         
-        # Get file size to determine if we should stream
-        file_size = os.path.getsize(job["file_path"])
-        filename = os.path.basename(job["file_path"])
-        
-        # For files larger than 50MB, use streaming response
-        if file_size > 50 * 1024 * 1024:  # 50MB
-            logger.info(f"Streaming large file: {filename} ({file_size / (1024*1024):.1f}MB)")
-            
-            return StreamingResponse(
-                file_streamer(job["file_path"]),
-                media_type="audio/mpeg",
-                headers={
-                    "Content-Disposition": f'attachment; filename="{filename}"',
-                    "Content-Length": str(file_size),
-                    "Accept-Ranges": "bytes"
-                },
-                background=BackgroundTask(cleanup_folders)
-            )
-        else:
-            # For smaller files, use regular FileResponse
-            return FileResponse(
-                job["file_path"],
-                media_type="audio/mpeg",
-                filename=filename,
-                background=BackgroundTask(cleanup_folders)
-            )
+        # Return status with download URL instead of serving file directly
+        return {
+            "status": "completed",
+            "download_url": f"/download/{job_id}",
+            "file_size": os.path.getsize(job["file_path"]),
+            "filename": os.path.basename(job["file_path"])
+        }
 
     return job
 
@@ -132,7 +144,6 @@ def process_audio_job(job_id: str, book_name: str, voice: str):
     try:
         logger.info(f"Starting audio processing for job {job_id}")
         
-        # Update job status
         job_results[job_id]["status"] = "downloading"
         
         decoded_name = urllib.parse.unquote(book_name)
@@ -143,11 +154,9 @@ def process_audio_job(job_id: str, book_name: str, voice: str):
             logger.error(f"Download failed for job {job_id}")
             return
 
-        # Update job status
         job_results[job_id]["status"] = "converting"
         logger.info(f"Starting conversion for job {job_id}")
 
-        # Create new event loop for this thread
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         
@@ -155,7 +164,6 @@ def process_audio_job(job_id: str, book_name: str, voice: str):
             converter = PDFToMP3Converter()
             loop.run_until_complete(converter.convert_with_voice(file_path, voice))
             
-            # Use the decoded name for the MP3 file
             safe_name = os.path.splitext(os.path.basename(file_path))[0]
             mp3_path = os.path.join(converter.output_dir, f"{safe_name}.mp3")
             
@@ -178,7 +186,6 @@ def process_audio_job(job_id: str, book_name: str, voice: str):
 def generate_audio_async(book_name: str, voice: str = "male"):
     """Start audio generation process asynchronously"""
     try:
-        # Validate voice parameter
         converter = PDFToMP3Converter()
         if voice not in converter.voices:
             raise HTTPException(
@@ -194,11 +201,10 @@ def generate_audio_async(book_name: str, voice: str = "male"):
             "voice": voice
         }
 
-        # Start background thread
         thread = threading.Thread(
             target=process_audio_job,
             args=(job_id, book_name, voice),
-            daemon=True  # Thread will die when main program exits
+            daemon=True
         )
         thread.start()
 
