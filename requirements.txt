@@ -5,3 +5,4 @@ pdfplumber==0.10.3
 edge-tts==6.1.10
 pydub==0.25.1
 python-multipart==0.0.6
+aiofiles==23.2.1
