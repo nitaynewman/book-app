@@ -6,6 +6,7 @@ import pdfplumber
 from uuid import uuid4
 from pydub import AudioSegment
 import logging
+import math
 
 logger = logging.getLogger(__name__)
 
@@ -50,8 +51,140 @@ class PDFToMP3Converter:
             logger.error(f"Error reading {file_path}: {e}")
             return ""
 
+    def split_text_into_segments(self, text: str, max_chars_per_segment: int = 15000) -> list:
+        """Split text into larger segments for chunked processing"""
+        # Clean text first
+        text = ' '.join(text.split())
+        
+        # Split into sentences to avoid cutting mid-sentence
+        sentences = text.split('. ')
+        segments = []
+        current_segment = ""
+        
+        for sentence in sentences:
+            # If adding this sentence would exceed the limit, start a new segment
+            if len(current_segment) + len(sentence) + 2 > max_chars_per_segment and current_segment:
+                segments.append(current_segment.strip())
+                current_segment = sentence + ". "
+            else:
+                current_segment += sentence + ". "
+        
+        # Add the last segment
+        if current_segment.strip():
+            segments.append(current_segment.strip())
+        
+        logger.info(f"Split text into {len(segments)} segments")
+        return segments
+
+    async def convert_segment_to_audio(self, segment_text: str, voice: str, output_path: str):
+        """Convert a text segment to audio"""
+        try:
+            # Further split segment into TTS-friendly chunks
+            max_chars = 3000
+            chunks = [segment_text[i:i + max_chars] for i in range(0, len(segment_text), max_chars)]
+            
+            combined = AudioSegment.empty()
+            temp_files = []
+
+            for i, chunk in enumerate(chunks):
+                chunk_id = f"{uuid4().hex[:8]}"
+                temp_path = os.path.join(tempfile.gettempdir(), f"temp_chunk_{chunk_id}.mp3")
+                temp_files.append(temp_path)
+
+                try:
+                    # Generate audio for this chunk
+                    communicate = edge_tts.Communicate(chunk, voice)
+                    await communicate.save(temp_path)
+
+                    if os.path.exists(temp_path):
+                        segment = AudioSegment.from_file(temp_path, format="mp3")
+                        combined += segment
+                except Exception as e:
+                    logger.error(f"Error processing chunk {i + 1} in segment: {e}")
+                    continue
+
+            # Save the combined segment
+            if len(combined) > 0:
+                combined.export(output_path, format="mp3")
+                logger.info(f"Segment saved: {output_path} ({len(combined)/1000:.1f}s)")
+            else:
+                logger.error(f"No audio generated for segment: {output_path}")
+
+            # Clean up temp files
+            for temp_file in temp_files:
+                try:
+                    if os.path.exists(temp_file):
+                        os.remove(temp_file)
+                except Exception as e:
+                    logger.warning(f"Could not remove temp file {temp_file}: {e}")
+
+        except Exception as e:
+            logger.error(f"Error converting segment to audio: {e}")
+
+    async def convert_with_voice_chunked(self, pdf_path: str, voice: str, job_id: str):
+        """Convert PDF to MP3 with chunked output"""
+        logger.info(f"Starting chunked conversion with voice '{voice}' for: {pdf_path}")
+        
+        if voice not in self.voices:
+            raise ValueError(f"Invalid voice '{voice}'. Available: {list(self.voices.keys())}")
+        
+        if not os.path.isfile(pdf_path):
+            raise FileNotFoundError(f"File {pdf_path} not found")
+
+        # Extract text
+        text = self.extract_text(pdf_path)
+        if not text:
+            raise ValueError(f"No text found in {pdf_path}")
+
+        # Create chunks directory
+        safe_name = os.path.splitext(os.path.basename(pdf_path))[0]
+        chunks_dir = os.path.join(self.output_dir, f"{job_id}_chunks")
+        os.makedirs(chunks_dir, exist_ok=True)
+
+        # Split text into segments (each will become a chunk)
+        segments = self.split_text_into_segments(text, max_chars_per_segment=15000)
+        selected_voice = self.voices[voice]
+
+        logger.info(f"Converting {len(segments)} segments to audio chunks")
+
+        # Process each segment
+        for i, segment in enumerate(segments):
+            logger.info(f"Processing segment {i + 1}/{len(segments)}")
+            
+            chunk_filename = f"chunk_{i:03d}.mp3"
+            chunk_path = os.path.join(chunks_dir, chunk_filename)
+            
+            await self.convert_segment_to_audio(segment, selected_voice, chunk_path)
+            
+            # Verify chunk was created
+            if not os.path.exists(chunk_path):
+                logger.error(f"Failed to create chunk {i}")
+                continue
+
+        # Verify chunks were created
+        chunk_files = [f for f in os.listdir(chunks_dir) if f.startswith("chunk_") and f.endswith(".mp3")]
+        if not chunk_files:
+            raise ValueError("No audio chunks were generated")
+
+        total_size = sum(os.path.getsize(os.path.join(chunks_dir, f)) for f in chunk_files)
+        logger.info(f"✅ Chunked audio conversion completed!")
+        logger.info(f"   Chunks directory: {chunks_dir}")
+        logger.info(f"   Total chunks: {len(chunk_files)}")
+        logger.info(f"   Total size: {total_size / (1024*1024):.2f} MB")
+
+        return chunks_dir
+
+    async def convert_with_voice(self, pdf_path: str, voice: str):
+        """Convert PDF to MP3 with specified voice (original method for backward compatibility)"""
+        logger.info(f"Starting conversion with voice '{voice}' for: {pdf_path}")
+        
+        if voice not in self.voices:
+            raise ValueError(f"Invalid voice '{voice}'. Available: {list(self.voices.keys())}")
+        
+        await self.convert_async(pdf_path, voice)
+
     async def convert_async(self, file_path: str, voice: str = "male"):
-        """Convert PDF to MP3 asynchronously"""
+        """Convert PDF to MP3 asynchronously (original method)"""
         if not os.path.isfile(file_path):
             raise FileNotFoundError(f"File {file_path} not found")
 
@@ -138,12 +271,3 @@ class PDFToMP3Converter:
                         os.remove(temp_file)
                 except Exception as e:
                     logger.warning(f"Could not remove temp file {temp_file}: {e}")
-
-    async def convert_with_voice(self, pdf_path: str, voice: str):
-        """Convert PDF to MP3 with specified voice"""
-        logger.info(f"Starting conversion with voice '{voice}' for: {pdf_path}")
-        
-        if voice not in self.voices:
-            raise ValueError(f"Invalid voice '{voice}'. Available: {list(self.voices.keys())}")
-        
-        await self.convert_async(pdf_path, voice)
