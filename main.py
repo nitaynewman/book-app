@@ -13,6 +13,7 @@ from pathlib import Path
 from uuid import uuid4
 import threading
 import logging
+import json
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -88,9 +89,9 @@ def iterfile(file_path: str, chunk_size: int = 8192):
                 break
             yield chunk
 
-@app.get("/download/{job_id}")
-async def download_audio_file(job_id: str):
-    """Direct download endpoint for audio files"""
+@app.get("/download_chunk/{job_id}/{chunk_index}")
+async def download_audio_chunk(job_id: str, chunk_index: int):
+    """Download a specific audio chunk"""
     job = job_results.get(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -98,17 +99,17 @@ async def download_audio_file(job_id: str):
     if job["status"] != "completed":
         raise HTTPException(status_code=400, detail=f"Job not ready. Status: {job['status']}")
     
-    file_path = job["file_path"]
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="File not found")
+    chunk_file = os.path.join(job["chunks_dir"], f"chunk_{chunk_index:03d}.mp3")
+    if not os.path.exists(chunk_file):
+        raise HTTPException(status_code=404, detail=f"Chunk {chunk_index} not found")
     
-    file_size = os.path.getsize(file_path)
-    filename = os.path.basename(file_path)
+    file_size = os.path.getsize(chunk_file)
+    filename = f"chunk_{chunk_index:03d}.mp3"
     
-    logger.info(f"Serving file: {filename} ({file_size / (1024*1024):.1f}MB)")
+    logger.info(f"Serving chunk {chunk_index}: {filename} ({file_size / (1024*1024):.1f}MB)")
     
     return StreamingResponse(
-        iterfile(file_path),
+        iterfile(chunk_file),
         media_type="audio/mpeg",
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
@@ -125,22 +126,29 @@ async def get_audio_status(job_id: str):
         raise HTTPException(status_code=404, detail="Job not found")
 
     if job["status"] == "completed":
-        if not os.path.exists(job["file_path"]):
-            job_results[job_id] = {"status": "failed", "reason": "File no longer exists"}
-            raise HTTPException(status_code=404, detail="Generated file no longer exists")
+        chunks_dir = job.get("chunks_dir")
+        if not chunks_dir or not os.path.exists(chunks_dir):
+            job_results[job_id] = {"status": "failed", "reason": "Chunks directory no longer exists"}
+            raise HTTPException(status_code=404, detail="Generated chunks no longer exist")
         
-        # Return status with download URL instead of serving file directly
+        # Count available chunks
+        chunk_files = [f for f in os.listdir(chunks_dir) if f.startswith("chunk_") and f.endswith(".mp3")]
+        chunk_files.sort()
+        
+        total_size = sum(os.path.getsize(os.path.join(chunks_dir, f)) for f in chunk_files)
+        
         return {
             "status": "completed",
-            "download_url": f"/download/{job_id}",
-            "file_size": os.path.getsize(job["file_path"]),
-            "filename": os.path.basename(job["file_path"])
+            "total_chunks": len(chunk_files),
+            "chunk_urls": [f"/download_chunk/{job_id}/{i}" for i in range(len(chunk_files))],
+            "total_size": total_size,
+            "filename": job.get("original_filename", "audiobook.mp3")
         }
 
     return job
 
 def process_audio_job(job_id: str, book_name: str, voice: str):
-    """Background function to process audio conversion"""
+    """Background function to process audio conversion with chunking"""
     try:
         logger.info(f"Starting audio processing for job {job_id}")
         
@@ -162,18 +170,23 @@ def process_audio_job(job_id: str, book_name: str, voice: str):
         
         try:
             converter = PDFToMP3Converter()
-            loop.run_until_complete(converter.convert_with_voice(file_path, voice))
+            # Use the new chunked conversion method
+            chunks_dir = loop.run_until_complete(
+                converter.convert_with_voice_chunked(file_path, voice, job_id)
+            )
             
-            safe_name = os.path.splitext(os.path.basename(file_path))[0]
-            mp3_path = os.path.join(converter.output_dir, f"{safe_name}.mp3")
-            
-            if not os.path.exists(mp3_path):
-                job_results[job_id] = {"status": "failed", "reason": "MP3 conversion failed"}
-                logger.error(f"MP3 not created for job {job_id}")
+            if not chunks_dir or not os.path.exists(chunks_dir):
+                job_results[job_id] = {"status": "failed", "reason": "Chunked conversion failed"}
+                logger.error(f"Chunks not created for job {job_id}")
                 return
 
-            job_results[job_id] = {"status": "completed", "file_path": mp3_path}
-            logger.info(f"Job {job_id} completed successfully")
+            safe_name = os.path.splitext(os.path.basename(file_path))[0]
+            job_results[job_id] = {
+                "status": "completed", 
+                "chunks_dir": chunks_dir,
+                "original_filename": f"{safe_name}.mp3"
+            }
+            logger.info(f"Job {job_id} completed successfully with chunks")
             
         finally:
             loop.close()
@@ -196,7 +209,7 @@ def generate_audio_async(book_name: str, voice: str = "male"):
         job_id = str(uuid4())
         job_results[job_id] = {
             "status": "queued", 
-            "file_path": None,
+            "chunks_dir": None,
             "book_name": book_name,
             "voice": voice
         }
@@ -227,7 +240,8 @@ def list_jobs():
             job_id: {
                 "status": job["status"],
                 "book_name": job.get("book_name", "unknown"),
-                "voice": job.get("voice", "unknown")
+                "voice": job.get("voice", "unknown"),
+                "has_chunks": job.get("chunks_dir") is not None
             }
             for job_id, job in job_results.items()
         }
@@ -240,11 +254,11 @@ def cancel_job(job_id: str):
         raise HTTPException(status_code=404, detail="Job not found")
     
     job = job_results.pop(job_id)
-    if job["status"] == "completed" and job.get("file_path") and os.path.exists(job["file_path"]):
+    if job["status"] == "completed" and job.get("chunks_dir") and os.path.exists(job["chunks_dir"]):
         try:
-            os.remove(job["file_path"])
+            shutil.rmtree(job["chunks_dir"])
         except Exception as e:
-            logger.error(f"Error removing file {job['file_path']}: {e}")
+            logger.error(f"Error removing chunks directory {job['chunks_dir']}: {e}")
     
     return {"message": f"Job {job_id} cancelled/removed"}
 
