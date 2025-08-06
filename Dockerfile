@@ -33,18 +33,18 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install ChromeDriver and Chrome in a single layer
-RUN CHROME_VERSION="131.0.6778.204" && \
-    # Download and install Chrome
-    wget -q -O /tmp/chrome.deb "https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_${CHROME_VERSION}-1_amd64.deb" && \
-    dpkg -i /tmp/chrome.deb || apt-get install -yf && \
-    rm /tmp/chrome.deb && \
-    # Download and install ChromeDriver
-    wget -q -O /tmp/chromedriver.zip "https://chromedriver.storage.googleapis.com/131.0.6778.204/chromedriver_linux64.zip" && \
-    unzip /tmp/chromedriver.zip -d /tmp/ && \
-    mv /tmp/chromedriver /usr/local/bin/ && \
-    chmod +x /usr/local/bin/chromedriver && \
-    rm -rf /tmp/chromedriver*
+# Install ChromeDriver v135 from Chrome for Testing (same as original)
+RUN wget -q -O /tmp/chromedriver.zip https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/135.0.7049.0/linux64/chromedriver-linux64.zip \
+    && unzip /tmp/chromedriver.zip -d /tmp/ \
+    && mv /tmp/chromedriver-linux64/chromedriver /usr/local/bin/ \
+    && chmod +x /usr/local/bin/chromedriver \
+    && rm -rf /tmp/chromedriver*
+
+# Install Google Chrome v135 (same as original)
+RUN wget -q -O /tmp/chrome-linux.zip https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/135.0.7049.0/linux64/chrome-linux64.zip \
+    && unzip /tmp/chrome-linux.zip -d /opt/ \
+    && ln -sf /opt/chrome-linux64/chrome /usr/bin/google-chrome \
+    && rm /tmp/chrome-linux.zip
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
