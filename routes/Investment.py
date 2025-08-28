@@ -50,7 +50,7 @@ def search_company_symbols(query: str):
             print(f"API key {api_key} failed with error: {e}. Trying next key...")
     return []
 
-@app.post("/search-company")
+@router.post("/search-company")
 def search_company(input: CompanyInput):
     results = search_company_symbols(input.company_name)
 
