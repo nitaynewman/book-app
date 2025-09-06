@@ -2,7 +2,7 @@
 .env
 <<<<<<< HEAD
 test.py
-
+testing.py
 # Byte-compiled Python files
 __pycache__/
 *.py[cod]
