@@ -12,6 +12,7 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import time
 
+
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -61,6 +62,7 @@ def initialize_firebase():
 # Initialize Firebase when module loads
 initialize_firebase()
 
+
 class CompanyInput(BaseModel):
     company_name: str
 
@@ -95,6 +97,7 @@ def search_company_symbols(query: str):
             response.raise_for_status()
             data = response.json()
 
+
             if 'bestMatches' in data:
                 matches = data['bestMatches']
                 logger.info(f"Found {len(matches)} matches")
@@ -113,6 +116,7 @@ def search_company_symbols(query: str):
                 
         except Exception as e:
             logger.error(f"API key {api_key} failed with error: {e}. Trying next key...")
+
     
     logger.warning("All API keys exhausted, returning empty results")
     return []
@@ -404,6 +408,7 @@ def process_user_investments(uid: str) -> Dict[str, Any]:
             'processed_investments': 0
         }
 
+
 @router.get("/test-connectivity")
 def test_connectivity():
     """Test if we can reach external APIs"""
@@ -527,5 +532,4 @@ def get_user_investment_summary(uid: str):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
-		
+
