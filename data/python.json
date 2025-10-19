@@ -1,0 +1,227 @@
+{
+    "AI": [
+        {
+            "id": "1",
+            "title": "AI Asistent",
+            "git_url": "https://github.com/nitaynewman/python-projects/blob/main/AI/AIasistent.py",
+            "video": "videos/ai/AIAsistent.mp4",
+            "paragraph": "In this project I created an AI Asistent witch you can talk to it and it answoers in text in the console and in audio it runs localy on your machine in the README file there are instructions on how to install your own LLM from ollama."
+        },
+        {
+            "id": "2",
+            "title": "AI Chat-Bot",
+            "git_url": "https://github.com/nitaynewman/python-projects/blob/main/AI/ChatBot.py",
+            "video": "videos/ai/AIChatBot.mp4",
+            "paragraph": "In this project I created an AI Chat-Bot it runs localy on your machine in the README file there are instructions on how to install your own LLM from ollama."
+        }
+    ],
+    "API": [
+        {
+            "id": "1",
+            "title": "Finding the International Space Station",
+            "git_url": "https://github.com/nitaynewman/python-projects/blob/main/API/API_ISS.py",
+            "video": "videos/api/iss.mp4",
+            "paragraph": "In this API bot, you can entSer your longitude and latitude, and you will get a mail when you could see in the sky the International Space Station."
+        },
+        {
+            "id": "2",
+            "title": "Tracking Your Habits Every Day",
+            "git_url": "https://github.com/nitaynewman/python-projects/blob/main/API/pixel.py",
+            "video": "videos/api/habitTracker.mp4",
+            "paragraph": "In this API bot, you can enter your habits you want to track, and then you can enter it every day and you will be able to see it in the Pixela web app."
+        },
+        {
+            "id": "3",
+            "title": "Stocks",
+            "git_url": "https://github.com/nitaynewman/python-projects/blob/main/API/Stock.py",
+            "video": "videos/api/stock.mp4",
+            "paragraph": "In this API bot, you will be able to enter your stocks you are investing in and send you a message every day with: the value of the stock on opening hour yesterday and today and the percentage in which it grew or lowered."
+        }
+    ],
+    "Automations and Selenium": [
+        {
+            "id": 1,
+            "title": "WhatsApp Sender",
+            "git_url": "https://github.com/nitaynewman/python-projects/tree/main/automations/whatsapp_sender",
+            "video": "videos/automations/whatsappSender.mp4",
+            "paragraph": "This automation library helped me in a lot of diffrent projects because I like to see all my notifications in my whatsapp. this uses selenium and you can send messages gifs images and vedeos. It opens whatsappweb using your data and saves your data after conecting the first time and using the elements to enter and send your data through the app"
+        },
+        {
+            "id": 2,
+            "title": "File Cleaner",
+            "git_url": "",
+            "video": "videos/automations/birthday.mp4",
+            "paragraph": "In this small project I fixed a day to day problem and it is cleaning my files. This script saves me a lot of time because it runs every day and insted of looking for files it will be in the proper place."
+        },
+        {
+            "id": 3,
+            "title": "Birthday Sender",
+            "git_url": "https://github.com/nitaynewman/python-projects/tree/main/automations/birthday",
+            "video": "videos/automations/birthday.mp4",
+            "paragraph": "This automation checks every day if it is one of the dates in a database. If it is, it sends a happy birthday email from a different DB to the birthday person."
+        },
+        {
+            "id": "4",
+            "title": "Sunday Motivation",
+            "git_url": "https://github.com/nitaynewman/python-projects/tree/main/automations/sunday_motivation",
+            "video": "videos/automations/motivation.mp4",
+            "paragraph": "This is an automation that uses a motivation quote api to send you every sunday an email with a quote from that api, to start your weak."
+        },
+        {
+            "id": "5",
+            "title": "Apartment finder",
+            "git_url": "https://github.com/nitaynewman/python-projects/blob/main/selenium/Apartments_Find.py",
+            "video": "",
+            "paragraph": "This automation is a selenium base automation witch goes to a fabricated apartment finder website and findes all the apartments that sute you based on the data you give it."
+        },
+        {
+            "id": "6",
+            "title": "cookie clicker",
+            "git_url": "https://github.com/nitaynewman/python-projects/blob/main/selenium/cookie_clicker.py",
+            "video": "videos/selenium/cookies.mp4",
+            "paragraph": "This is a selenium based automation witch goes to the populer game called cookie clicker and clickes on the cookie untill it has an ability to upgrade in witch it upgrades and continues to click."
+        },
+        {
+            "id": "7",
+            "title": "Net-Speed",
+            "git_url": "https://github.com/nitaynewman/python-projects/blob/main/selenium/Net_Speed.py",
+            "video": "videos/selenium/Speedtest.mp4",
+            "paragraph": "This is a selenium based automation witch goes to the network speed website and runs it and returns your download and upload speed."
+        }
+    ],
+    "Flask": [
+        {
+            "id": 1,
+            "title": "Authentication",
+            "git_url": "https://github.com/nitaynewman/python-projects/tree/main/Flask/authentication",
+            "video": "videos/flask/authentication.mp4",
+            "paragraph": "This flask website shows you a secret file after you log in, this was a project for handling passwords."
+        },
+        {
+            "id": 2,
+            "title": "Blog",
+            "git_url": "https://github.com/nitaynewman/python-projects/tree/main/Flask/blog",
+            "video": "videos/flask/authentication_blog.mp4",
+            "paragraph": "This is a flask blog app. you can log in and seeread and comint on the sighte itself. if you have permissions like me you can create and edit the blogs enjoy browsing it."
+        },
+        {
+            "id": 3,
+            "title": "Favret Books",
+            "git_url": "https://github.com/nitaynewman/python-projects/tree/main/Flask/books",
+            "video": "videos/flask/books.mp4",
+            "paragraph": "This is my flask website that you can see all my favert books and you can add new books using a book api."
+        },
+        {
+            "id": 4,
+            "title": "Cafe API",
+            "git_url": "https://github.com/nitaynewman/python-projects/tree/main/Flask/cafe_api",
+            "video": "videos/flask/cafe_api.mp4",
+            "paragraph": "This cafe website finds all the cafes in your aria using an cafe api. I use this API a lot because it has a lot of developer options as you can see in the next project."
+        },
+        {
+            "id": 5,
+            "title": "Cafe Rating",
+            "git_url": "https://github.com/nitaynewman/python-projects/tree/main/Flask/coffee",
+            "video": "videos/flask/coffee.mp4",
+            "paragraph": "This flask web application you can rate all cafe with a few parms tast wifi and more. enjoy browsing through it😊"
+        },
+        {
+            "id": 6,
+            "title": "Top 10 Movies",
+            "git_url": "https://github.com/nitaynewman/python-projects/tree/main/Flask/movies",
+            "video": "videos/flask/movies.mp4",
+            "paragraph": "This flask website you I put my top 10 movies. you can add movies and rate them and even write a rivew about them, enjoy."
+        },
+        {
+            "id": 7,
+            "title": "hier lower website",
+            "git_url": "https://github.com/nitaynewman/python-projects/blob/main/Flask/Higher_Lower.py",
+            "video": "videos/flask/Higher_Lower.mp4",
+            "paragraph": "In this flask website I took the functinality of my basic hier lower game and put it in flask website, enjoy."
+        }
+    ],
+    "webscraping": [
+        {
+            "id": 1,
+            "title": "Movies",
+            "git_url": "https://github.com/nitaynewman/python-projects/tree/main/scraping/Movie",
+            "video": "videos/scraping/movies.mp4",
+            "paragraph": "This is a webscraping code that returns to you a list of top 100 movies acording to the EMPIRE website."
+        },
+        {
+            "id": 2,
+            "title": "Spotify",
+            "git_url": "https://github.com/nitaynewman/python-projects/tree/main/scraping/spotify",
+            "video": "",
+            "paragraph": "This webscraping code runs uses top 100 songs from billboard website and makes goes to your spotify user and makes a new play list for you."
+        },
+        {
+            "id": 3,
+            "title": "Amazon Price",
+            "git_url": "https://github.com/nitaynewman/python-projects/blob/main/scraping/amazon_price.py",
+            "video": "",
+            "paragraph": "In this webscraping code you can enter your favret amazon prodacts and a number you are willing to pay for it and when the price drops down to the price you are willing to pay you will get an email that the price droped it it is a good time to by it."
+        }
+    ],
+    "Tkinter GUI": [
+        {
+            "id": 1,
+            "title": "Flash Cards",
+            "git_url": "https://github.com/nitaynewman/python-projects/tree/main/TKinter/Flash_Card",
+            "video": "videos/gui/FlashCard.mp4",
+            "paragraph": "I dont know about you but I have a problam with remambering stuf before a test, so in this project I disided to help myself to fix the problam. I created a flash card gui so that before a test I can go through q&a's. for this I used hebrew words to study for the psichometry."
+        },
+        {
+            "id": 2,
+            "title": "Password Saver",
+            "git_url": "https://github.com/nitaynewman/python-projects/tree/main/TKinter/Password",
+            "video": "videos/gui/password.mp4",
+            "paragraph": "These days we have a problem with password securety, it is recomended to use a new password for every new thing you sign in so I created a password saver app witch saves all your passwords and you can even genorait new password."
+        },
+        {
+            "id": 3,
+            "title": "quizzler",
+            "git_url": "https://github.com/nitaynewman/python-projects/tree/main/TKinter/quizzler",
+            "video": "videos/gui/Quizzler.mp4",
+            "paragraph": "This GUI project is a questioner witch has a few random questions from a api data base. you get 10 q you can answer and it gives you your score in the end."
+        },
+        {
+            "id": 4,
+            "title": "Timer",
+            "git_url": "https://github.com/nitaynewman/python-projects/tree/main/TKinter/Timer",
+            "video": "videos/gui/Pomodoro.mp4",
+            "paragraph": "This is a GUI project witch has Pomodoro consept of timing your prodactive time. studys have shown that this is the best way to stay prodactivein. enjoy"
+        },
+        {
+            "id": 5,
+            "title": "To-Do List",
+            "git_url": "https://github.com/nitaynewman/python-projects/tree/main/TKinter/todo-list",
+            "video": "videos/gui/ToDoList.mp4",
+            "paragraph": "This is my most used GUI app. It helps me orgnize my days and weeks better. hope it helps you as well."
+        }
+    ],
+    "Games": [
+        {
+            "id": 1,
+            "title": "Guess The State",
+            "git_url": "https://github.com/nitaynewman/python-projects/tree/main/Turtle/Guess_State",
+            "video": "videos/game/guessthestate.mp4",
+            "paragraph": "This is a guess the state game, you enter a US state and if is correct it shows you on the map where it is and if you remember all the states you win. Lets see if you can win."
+        },
+        {
+            "id": 2,
+            "title": "Pong",
+            "git_url": "https://github.com/nitaynewman/python-projects/tree/main/Turtle/pong",
+            "video": "videos/game/pong.mp4",
+            "paragraph": "I alwais like the game pong so I diceaded to create it. It was a very fun expireance. Hope you have as much fun playing it as I hade creating it."
+        },
+        {
+            "id": 3,
+            "title": "Snake",
+            "git_url": "https://github.com/nitaynewman/python-projects/tree/main/Turtle/snake",
+            "video": "videos/game/snake.mp4",
+            "url": "",
+            "paragraph": "This is a classic game I dont think I coldnt add this fun game. Hope you enjoy."
+        }
+    ]
+}
