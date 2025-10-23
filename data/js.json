@@ -5,7 +5,7 @@
             "title": "Guess The Number",
             "git_url": "https://github.com/nitaynewman/portfolio/tree/main/src/projects/guessNum",
             "video": "videos/js/guess-num.mp4",
-            "url": "/projects/guess-num",
+            "url": "https://nn-projects.onrender.com/pig-game",
             "paragraph": "In this js project I created a guess the number game. every time you play there is a secret number between 1 and 20 hiden and every time you guess your score lowers by one and it displays you a message hier or lower or if you guessed the correct number then it changes the css to green and you can play again by pressing the AGAIN button. enjoy playing."
         },
         {
@@ -13,7 +13,7 @@
             "title": "Pig Game",
             "git_url": "https://github.com/nitaynewman/portfolio/tree/main/src/projects/pigGame",
             "video": "videos/js/pig-game.mp4",
-            "url": "/projects/pig-game",
+            "url": "https://nn-projects.onrender.com/guess-number",
             "paragraph": "In this game I created a 2 player game where 2 players are tring to reach 100 points. you start by rolling the dice if you get 1 the user changes, numbers between 2 and 6 you add to your count but only after you press on the hold button it permenntly saves your count. enjoy playing."
         }
     ]
