@@ -39,6 +39,14 @@
             "video": "videos/react_5_workout.mp4",
             "url": "https://nn-react.onrender.com/workout",
             "paragraph": "This is a great way to make sure a workout is timed correctly with no problems "
+        },
+        {
+            "id": 6,
+            "title": "TIc Tack Toe",
+            "git_url": "https://github.com/nitaynewman/nn-react/tree/main/src/projects/tictactoe",
+            "video": "videos/react_6_tictactoe.mp4",
+            "url": "https://nn-react.onrender.com/tictactoe",
+            "paragraph": "multiplayer Tic Tac Toe game"
         }
     ]
 }

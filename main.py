@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Query, HTTPException, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from routes import book_pdf, Audio, blog, user_book, auth, portfolio, clean_file, Investment, nn_data, questions, locations, pizza
+from routes import book_pdf, Audio, blog, user_book, auth, portfolio, clean_file, Investment, nn_data, questions, locations, pizza, tictactoe
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 import requests
@@ -26,6 +26,7 @@ app.include_router(nn_data.router)
 app.include_router(questions.router)
 app.include_router(locations.router)
 app.include_router(pizza.router)
+app.include_router(tictactoe.router)
 
 
 
