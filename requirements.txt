@@ -1,4 +1,4 @@
-﻿fastapi
+fastapi
 uvicorn[standard]==0.29.0
 edge-tts==7.0.0
 pyttsx3==2.90
@@ -14,5 +14,5 @@ pydantic[email]
 firebase-admin
 google-cloud-firestore
 bcrypt
-python-multipart
 werkzeug
+python-multipart
