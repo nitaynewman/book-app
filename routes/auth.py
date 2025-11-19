@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from functions.email import send_email 
-import os
+import os, requests
 from dotenv import load_dotenv
 
 
@@ -20,7 +20,8 @@ router = APIRouter(
 async def signin(username, email):
     title = "AudioBook user request"
     msg = f"{username} wants permission\n{email}\nurl: {BACKEND_URL}/auth/add_user?username={username}&email={email}"
-    await send_email(msg=msg, title=title, src_email=MY_EMAIL, src_password=PASSWORD, dest_email=MY_EMAIL)
+    data = {msg=msg, title=title, src_email=MY_EMAIL, dest_email=MY_EMAIL}
+    response = await requests.post()
     return 'success'
 
 @router.get('/add_user')
