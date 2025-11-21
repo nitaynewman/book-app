@@ -1,10 +1,9 @@
 from fastapi import FastAPI, Query, HTTPException, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from routes import book_pdf, Audio, blog, user_book, auth, clean_file
+from routes import book_pdf, Audio, blog, user_book, auth, clean_file, senders
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
-import requests
 import uvicorn, sys, asyncio
 
 
@@ -20,6 +19,7 @@ app.include_router(blog.router)
 app.include_router(user_book.router)
 app.include_router(auth.router)
 app.include_router(clean_file.router)
+app.include_router(senders.router)
 
 
 
@@ -34,4 +34,4 @@ app.add_middleware(
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    uvicorn.run(app, host="0.0.0.0", port=8060)

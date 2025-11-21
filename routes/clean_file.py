@@ -1,4 +1,5 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from helper.authentication import APIKeyChecker
 import os
 
 router = APIRouter(
@@ -6,13 +7,16 @@ router = APIRouter(
     tags=['clean_files']
 )
 
+# API key checker for admin operations (cleaning files)
+admin_auth = APIKeyChecker("admin")
+
 @router.get('/clean_files')
-def clean_files():
-    clean_folder(folder_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "mp3"))
-    clean_folder(folder_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "pdf"))
+def clean_files(api_key: str = Depends(admin_auth)):
+    clean_folder(folder_path=os.path.join(os.path.dirname(os.path.dirname(__file__)), "mp3"))
+    clean_folder(folder_path=os.path.join(os.path.dirname(os.path.dirname(__file__)), "pdf"))
+    return {"status": "success", "message": "Files cleaned successfully"}
 
 def clean_folder(folder_path):
-
     """Deletes all files in the folder if there are more than 2."""
     if not os.path.exists(folder_path):
         print(f"Folder '{folder_path}' does not exist.")
